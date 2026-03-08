@@ -1,0 +1,69 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{E9A2B3C4-5D6F-4E7A-9B8C-2D3E4F5A6B7C}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Citas.Application</RootNamespace>
+    <AssemblyName>Citas.Application</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="MediatR, Version=9.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\..\..\packages\MediatR.9.0.0\lib\net461\MediatR.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Commands\AgendarCitaCommand.cs" />
+    <Compile Include="Commands\ActualizarEstadoCitaCommand.cs" />
+    <Compile Include="Commands\FinalizarCitaCommand.cs" />
+    <Compile Include="CommandHandlers\AgendarCitaCommandHandler.cs" />
+    <Compile Include="CommandHandlers\ActualizarEstadoCitaCommandHandler.cs" />
+    <Compile Include="CommandHandlers\FinalizarCitaCommandHandler.cs" />
+    <Compile Include="DTOs\CitaDto.cs" />
+    <Compile Include="Interfaces\IRabbitMQPublisher.cs" />
+    <Compile Include="Queries\ObtenerCitaPorIdQuery.cs" />
+    <Compile Include="Queries\ObtenerCitasPorMedicoQuery.cs" />
+    <Compile Include="Queries\ObtenerCitasPorPacienteQuery.cs" />
+    <Compile Include="Queries\ObtenerCitasPendientesQuery.cs" />
+    <Compile Include="QueryHandlers\ObtenerCitaPorIdQueryHandler.cs" />
+    <Compile Include="QueryHandlers\ObtenerCitasPorMedicoQueryHandler.cs" />
+    <Compile Include="QueryHandlers\ObtenerCitasPorPacienteQueryHandler.cs" />
+    <Compile Include="QueryHandlers\ObtenerCitasPendientesQueryHandler.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Citas.Domain\Citas.Domain.csproj">
+      <Project>{d8f3e1b2-4c5a-4d6e-8f7a-1b2c3d4e5f6a}</Project>
+      <Name>Citas.Domain</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

@@ -1,0 +1,67 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{B2C3D4E5-6F7A-8B9C-0D1E-2F3A4B5C6D7E}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Recetas.Application</RootNamespace>
+    <AssemblyName>Recetas.Application</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="MediatR, Version=9.0.0.0, Culture=neutral, PublicKeyToken=bb9a41a5e8aaa7e2, processorArchitecture=MSIL">
+      <HintPath>..\..\..\..\packages\MediatR.9.0.0\lib\net461\MediatR.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Commands\CrearRecetaCommand.cs" />
+    <Compile Include="Commands\AgregarMedicamentoCommand.cs" />
+    <Compile Include="CommandHandlers\CrearRecetaCommandHandler.cs" />
+    <Compile Include="CommandHandlers\AgregarMedicamentoCommandHandler.cs" />
+    <Compile Include="Queries\ObtenerRecetaPorIdQuery.cs" />
+    <Compile Include="Queries\ObtenerRecetasPorPacienteQuery.cs" />
+    <Compile Include="Queries\ObtenerRecetasPorMedicoQuery.cs" />
+    <Compile Include="Queries\ObtenerRecetaPorCitaQuery.cs" />
+    <Compile Include="QueryHandlers\ObtenerRecetaPorIdQueryHandler.cs" />
+    <Compile Include="QueryHandlers\ObtenerRecetasPorPacienteQueryHandler.cs" />
+    <Compile Include="QueryHandlers\ObtenerRecetasPorMedicoQueryHandler.cs" />
+    <Compile Include="QueryHandlers\ObtenerRecetaPorCitaQueryHandler.cs" />
+    <Compile Include="DTOs\RecetaDto.cs" />
+    <Compile Include="DTOs\DetalleRecetaDto.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Recetas.Domain\Recetas.Domain.csproj">
+      <Project>{a1b2c3d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d}</Project>
+      <Name>Recetas.Domain</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>
