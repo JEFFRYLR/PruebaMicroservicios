@@ -35,9 +35,11 @@
     <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DTOs\PersonaExternaDto.cs" />
     <Compile Include="Entities\Cita.cs" />
     <Compile Include="Enums\EstadoCita.cs" />
     <Compile Include="Interfaces\ICitaRepository.cs" />
+    <Compile Include="Interfaces\IPersonasExternoService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup />

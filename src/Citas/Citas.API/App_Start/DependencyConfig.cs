@@ -9,6 +9,7 @@ using Citas.Domain.Interfaces;
 using Citas.Infrastructure.Messaging;
 using Citas.Infrastructure.Persistence;
 using Citas.Infrastructure.Repositories;
+using Citas.Infrastructure.ExternalServices; // ✅ NUEVO
 using MediatR;
 using System;
 using System.Collections.Generic;
@@ -23,12 +24,16 @@ namespace Citas.API.App_Start
     {
         // ✅ SINGLETON: Una sola instancia de RabbitMQ Publisher para toda la aplicación
         private static IRabbitMQPublisher _rabbitMQPublisherSingleton;
+        
+        // ✅ NUEVO: SINGLETON del servicio externo de Personas
+        private static IPersonasExternoService _personasServiceSingleton;
         private static readonly object _lock = new object();
 
         public static void Register(System.Web.Http.HttpConfiguration config)
         {
-            // ✅ Inicializar RabbitMQ Publisher al inicio
+            // ✅ Inicializar servicios singleton al inicio
             InicializarRabbitMQPublisher();
+            InicializarPersonasService();
             
             config.DependencyResolver = new CitasDependencyResolver();
         }
@@ -62,12 +67,45 @@ namespace Citas.API.App_Start
             }
         }
 
+        // ✅ NUEVO: Inicializar servicio externo de Personas
+        private static void InicializarPersonasService()
+        {
+            if (_personasServiceSingleton == null)
+            {
+                lock (_lock)
+                {
+                    if (_personasServiceSingleton == null)
+                    {
+                        try
+                        {
+                            System.Diagnostics.Debug.WriteLine("=== INICIALIZANDO PERSONAS SERVICE SINGLETON ===");
+                            _personasServiceSingleton = new PersonasExternoService();
+                            System.Diagnostics.Debug.WriteLine("✅ PERSONAS SERVICE SINGLETON CREADO EXITOSAMENTE");
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"❌ ERROR CREANDO PERSONAS SERVICE: {ex.Message}");
+                            throw; // No tiene sentido continuar sin este servicio
+                        }
+                    }
+                }
+            }
+        }
+
         /// <summary>
         /// Obtener instancia singleton del publisher
         /// </summary>
         public static IRabbitMQPublisher GetRabbitMQPublisher()
         {
             return _rabbitMQPublisherSingleton;
+        }
+
+        /// <summary>
+        /// ✅ NUEVO: Obtener instancia singleton del servicio de Personas
+        /// </summary>
+        public static IPersonasExternoService GetPersonasService()
+        {
+            return _personasServiceSingleton;
         }
     }
 
@@ -90,7 +128,7 @@ namespace Citas.API.App_Start
 
         public void Dispose()
         {
-            // ⚠️ NO disponer del singleton aquí
+            // ⚠️ NO disponer de los singletons aquí
         }
     }
 
@@ -108,10 +146,11 @@ namespace Citas.API.App_Start
                     _context = new CitasDbContext();
                     _repository = new CitaRepository(_context);
                     
-                    // ✅ USAR EL SINGLETON en lugar de crear nueva instancia
+                    // ✅ USAR LOS SINGLETONS
                     var publisher = DependencyConfig.GetRabbitMQPublisher();
+                    var personasService = DependencyConfig.GetPersonasService(); // ✅ NUEVO
                     
-                    var mediator = new SimpleMediator(_repository, publisher);
+                    var mediator = new SimpleMediator(_repository, publisher, personasService); // ✅ MODIFICADO
                     return new CitasController(mediator);
                 }
 
@@ -131,9 +170,8 @@ namespace Citas.API.App_Start
 
         public void Dispose()
         {
-            // ✅ Solo disponer del contexto, NO del publisher
+            // ✅ Solo disponer del contexto
             _context?.Dispose();
-            // ⚠️ NO llamar a _publisher?.Dispose() aquí
         }
     }
 
@@ -160,11 +198,16 @@ namespace Citas.API.App_Start
     {
         private readonly ICitaRepository _repository;
         private readonly IRabbitMQPublisher _publisher;
+        private readonly IPersonasExternoService _personasService; // ✅ NUEVO
 
-        public SimpleMediator(ICitaRepository repository, IRabbitMQPublisher publisher)
+        public SimpleMediator(
+            ICitaRepository repository, 
+            IRabbitMQPublisher publisher,
+            IPersonasExternoService personasService) // ✅ NUEVO PARÁMETRO
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
             _publisher = publisher ?? throw new ArgumentNullException(nameof(publisher));
+            _personasService = personasService ?? throw new ArgumentNullException(nameof(personasService)); // ✅ NUEVO
         }
 
         public async System.Threading.Tasks.Task<TResponse> Send<TResponse>(IRequest<TResponse> request, System.Threading.CancellationToken cancellationToken = default)
@@ -172,7 +215,8 @@ namespace Citas.API.App_Start
             // COMMANDS
             if (request is AgendarCitaCommand agendarCmd)
             {
-                var handler = new AgendarCitaCommandHandler(_repository);
+                // ✅ MODIFICADO: Pasar el servicio de Personas al handler
+                var handler = new AgendarCitaCommandHandler(_repository, _personasService);
                 var result = await handler.Handle(agendarCmd, cancellationToken);
                 return (TResponse)(object)result;
             }

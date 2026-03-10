@@ -2,6 +2,7 @@ using MediatR;
 using Personas.Application.Commands;
 using Personas.Application.DTOs;
 using Personas.Application.Queries;
+using Personas.Domain.Enums;
 using System;
 using System.Net;
 using System.Threading.Tasks;
@@ -176,6 +177,66 @@ namespace Personas.API.Controllers
                 await _mediator.Send(command);
 
                 return Ok(new { mensaje = "Persona eliminada exitosamente" });
+            }
+            catch (Exception ex)
+            {
+                return InternalServerError(ex);
+            }
+        }
+
+        /// <summary>
+        /// Valida si un médico existe y está activo
+        /// </summary>
+        [HttpGet]
+        [Route("medicos/{id:int}/validar")]
+        public async Task<IHttpActionResult> ValidarMedico(int id)
+        {
+            try
+            {
+                var query = new ObtenerPersonaPorIdQuery(id);
+                var persona = await _mediator.Send(query);
+
+                if (persona == null)
+                    return Ok(new { existe = false, mensaje = "Médico no encontrado" });
+
+                bool esMedico = persona.TipoPersona == TipoPersona.Medico;
+                
+                return Ok(new { 
+                    existe = esMedico,
+                    id = persona.Id,
+                    nombre = string.Format("{0} {1}", persona.Nombre, persona.Apellido),
+                    tipoPersona = persona.TipoPersona.ToString()
+                });
+            }
+            catch (Exception ex)
+            {
+                return InternalServerError(ex);
+            }
+        }
+
+        /// <summary>
+        /// Valida si un paciente existe y está activo
+        /// </summary>
+        [HttpGet]
+        [Route("pacientes/{id:int}/validar")]
+        public async Task<IHttpActionResult> ValidarPaciente(int id)
+        {
+            try
+            {
+                var query = new ObtenerPersonaPorIdQuery(id);
+                var persona = await _mediator.Send(query);
+
+                if (persona == null)
+                    return Ok(new { existe = false, mensaje = "Paciente no encontrado" });
+
+                bool esPaciente = persona.TipoPersona == TipoPersona.Paciente;
+                
+                return Ok(new { 
+                    existe = esPaciente,
+                    id = persona.Id,
+                    nombre = string.Format("{0} {1}", persona.Nombre, persona.Apellido),
+                    tipoPersona = persona.TipoPersona.ToString()
+                });
             }
             catch (Exception ex)
             {

@@ -30,13 +30,14 @@ namespace Citas.API.Controllers
         {
             return Ok(new
             {
-                mensaje = "API de Citas funcionando con CQRS + MediatR",
-                version = "1.0",
+                mensaje = "API de Citas funcionando con CQRS + MediatR + Validación de Personas",
+                version = "2.0",
                 patron = "CQRS (Command Query Responsibility Segregation)",
+                integracion = "HTTP Sincrónico con Microservicio de Personas",
                 endpoints = new[]
                 {
                     "GET /api/citas - Info de la API",
-                    "POST /api/citas - Agendar cita (Command)",
+                    "POST /api/citas - Agendar cita (Command con validación)",
                     "GET /api/citas/{id} - Obtener cita por ID (Query)",
                     "GET /api/citas/medico/{medicoId} - Citas por médico (Query)",
                     "GET /api/citas/paciente/{pacienteId} - Citas por paciente (Query)",
@@ -48,7 +49,7 @@ namespace Citas.API.Controllers
         }
 
         /// <summary>
-        /// Agendar nueva cita
+        /// Agendar nueva cita con validación de médico y paciente
         /// POST /api/citas
         /// </summary>
         [HttpPost]
@@ -58,17 +59,53 @@ namespace Citas.API.Controllers
             if (command == null)
                 return BadRequest("El comando no puede ser nulo");
 
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
             try
             {
+                System.Diagnostics.Debug.WriteLine($"[API] Iniciando agendamiento de cita - Médico: {command.MedicoId}, Paciente: {command.PacienteId}");
+                
                 var citaId = await _mediator.Send(command);
-                return Ok(new { id = citaId, mensaje = "Cita agendada exitosamente" });
+                
+                System.Diagnostics.Debug.WriteLine($"[API] Cita agendada exitosamente con ID: {citaId}");
+                
+                return Ok(new 
+                { 
+                    id = citaId, 
+                    mensaje = "Cita agendada exitosamente",
+                    fechaCita = command.FechaCita,
+                    lugar = command.Lugar
+                });
             }
-            catch (ArgumentException ex)
+            catch (InvalidOperationException invalidEx)
             {
-                return BadRequest(ex.Message);
+                // ✅ Errores de validación de negocio (médico/paciente no existe)
+                System.Diagnostics.Debug.WriteLine($"[API] Error de validación: {invalidEx.Message}");
+                return BadRequest(invalidEx.Message);
+            }
+            catch (ArgumentException argEx)
+            {
+                // ✅ Errores de validación de argumentos
+                System.Diagnostics.Debug.WriteLine($"[API] Error de argumentos: {argEx.Message}");
+                return BadRequest(argEx.Message);
+            }
+            catch (System.Net.Http.HttpRequestException httpEx)
+            {
+                // ✅ Error de comunicación con el servicio de Personas
+                System.Diagnostics.Debug.WriteLine($"[API] Error de comunicación: {httpEx.Message}");
+                return Content(System.Net.HttpStatusCode.ServiceUnavailable, new
+                {
+                    mensaje = "No se pudo validar los datos de la cita. El servicio de Personas no está disponible.",
+                    detalle = httpEx.Message,
+                    tipo = "ServiceUnavailable"
+                });
             }
             catch (Exception ex)
             {
+                // ✅ Otros errores inesperados
+                System.Diagnostics.Debug.WriteLine($"[API] Error inesperado: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[API] StackTrace: {ex.StackTrace}");
                 return InternalServerError(ex);
             }
         }
