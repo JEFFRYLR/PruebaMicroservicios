@@ -1,15 +1,17 @@
 using Citas.Application.Commands;
 using Citas.Domain.Entities;
+using Citas.Domain.Enums;
 using Citas.Domain.Interfaces;
 using MediatR;
 using System;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Citas.Application.CommandHandlers
 {
     /// <summary>
-    /// Handler para agendar una nueva cita
+    /// Handler para agendar una nueva cita con validación de personas
     /// </summary>
     public class AgendarCitaCommandHandler : IRequestHandler<AgendarCitaCommand, int>
     {

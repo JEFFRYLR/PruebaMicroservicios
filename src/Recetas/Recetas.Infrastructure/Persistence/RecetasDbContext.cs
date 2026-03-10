@@ -1,6 +1,7 @@
 using Recetas.Domain.Entities;
 using Recetas.Infrastructure.Configurations;
 using System.Data.Entity;
+using System.Diagnostics;
 
 namespace Recetas.Infrastructure.Persistence
 {
@@ -9,8 +10,10 @@ namespace Recetas.Infrastructure.Persistence
     /// </summary>
     public class RecetasDbContext : DbContext
     {
-        public RecetasDbContext() : base("name=RecetasConnection")
+        public RecetasDbContext() : base("name=RecetasDbContext")
         {
+            // Enviar SQL y mensajes EF al Output Window / Debug
+            this.Database.Log = s => Debug.WriteLine(s);
         }
 
         public DbSet<Receta> Recetas { get; set; }
