@@ -45,7 +45,7 @@ namespace Citas.Application.CommandHandlers
                 Lugar = cita.Lugar  // ✅ AGREGAR ESTE CAMPO
             };
 
-            _rabbitMQPublisher.PublicarMensaje("cola_recetas", mensajeReceta);
+            _rabbitMQPublisher.PublicarMensaje("recetas.queue", mensajeReceta);
 
             return await Task.FromResult(Unit.Value);
         }

@@ -21,9 +21,53 @@ namespace Citas.API.App_Start
     /// </summary>
     public static class DependencyConfig
     {
+        // ✅ SINGLETON: Una sola instancia de RabbitMQ Publisher para toda la aplicación
+        private static IRabbitMQPublisher _rabbitMQPublisherSingleton;
+        private static readonly object _lock = new object();
+
         public static void Register(System.Web.Http.HttpConfiguration config)
         {
+            // ✅ Inicializar RabbitMQ Publisher al inicio
+            InicializarRabbitMQPublisher();
+            
             config.DependencyResolver = new CitasDependencyResolver();
+        }
+
+        private static void InicializarRabbitMQPublisher()
+        {
+            if (_rabbitMQPublisherSingleton == null)
+            {
+                lock (_lock)
+                {
+                    if (_rabbitMQPublisherSingleton == null)
+                    {
+                        try
+                        {
+                            System.Diagnostics.Debug.WriteLine("=== INICIALIZANDO RABBITMQ PUBLISHER SINGLETON ===");
+                            _rabbitMQPublisherSingleton = new RabbitMQPublisher(
+                                hostName: "168.231.74.78",
+                                userName: "admin",
+                                password: "admin123"
+                            );
+                            System.Diagnostics.Debug.WriteLine("✅ RABBITMQ PUBLISHER SINGLETON CREADO EXITOSAMENTE");
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"❌ ERROR CREANDO RABBITMQ PUBLISHER: {ex.Message}");
+                            System.Diagnostics.Debug.WriteLine("⚠️ USANDO MOCK RABBITMQ PUBLISHER");
+                            _rabbitMQPublisherSingleton = new MockRabbitMQPublisher();
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Obtener instancia singleton del publisher
+        /// </summary>
+        public static IRabbitMQPublisher GetRabbitMQPublisher()
+        {
+            return _rabbitMQPublisherSingleton;
         }
     }
 
@@ -46,6 +90,7 @@ namespace Citas.API.App_Start
 
         public void Dispose()
         {
+            // ⚠️ NO disponer del singleton aquí
         }
     }
 
@@ -53,7 +98,6 @@ namespace Citas.API.App_Start
     {
         private CitasDbContext _context;
         private ICitaRepository _repository;
-        private IRabbitMQPublisher _publisher;
 
         public object GetService(Type serviceType)
         {
@@ -64,17 +108,10 @@ namespace Citas.API.App_Start
                     _context = new CitasDbContext();
                     _repository = new CitaRepository(_context);
                     
-                    // Intentar crear RabbitMQ Publisher, si falla usar mock
-                    try
-                    {
-                        _publisher = new RabbitMQPublisher();
-                    }
-                    catch
-                    {
-                        _publisher = new MockRabbitMQPublisher();
-                    }
-
-                    var mediator = new SimpleMediator(_repository, _publisher);
+                    // ✅ USAR EL SINGLETON en lugar de crear nueva instancia
+                    var publisher = DependencyConfig.GetRabbitMQPublisher();
+                    
+                    var mediator = new SimpleMediator(_repository, publisher);
                     return new CitasController(mediator);
                 }
 
@@ -94,8 +131,9 @@ namespace Citas.API.App_Start
 
         public void Dispose()
         {
+            // ✅ Solo disponer del contexto, NO del publisher
             _context?.Dispose();
-            _publisher?.Dispose();
+            // ⚠️ NO llamar a _publisher?.Dispose() aquí
         }
     }
 
@@ -111,6 +149,7 @@ namespace Citas.API.App_Start
 
         public void Dispose()
         {
+            // No hacer nada
         }
     }
 
