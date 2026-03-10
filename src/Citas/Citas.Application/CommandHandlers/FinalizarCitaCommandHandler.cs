@@ -35,13 +35,14 @@ namespace Citas.Application.CommandHandlers
             _repository.Actualizar(cita);
             _repository.GuardarCambios();
 
+            // Mensaje con todos los datos requeridos
             var mensajeReceta = new
             {
                 CitaId = cita.Id,
                 MedicoId = cita.MedicoId,
                 PacienteId = cita.PacienteId,
                 FechaCita = cita.FechaCita,
-                Mensaje = "Cita finalizada. Por favor, ingrese la receta médica."
+                Lugar = cita.Lugar  // ✅ AGREGAR ESTE CAMPO
             };
 
             _rabbitMQPublisher.PublicarMensaje("cola_recetas", mensajeReceta);

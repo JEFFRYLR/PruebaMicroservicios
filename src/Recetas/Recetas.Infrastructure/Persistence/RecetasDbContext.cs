@@ -1,4 +1,5 @@
 using Recetas.Domain.Entities;
+using Recetas.Infrastructure.Configurations;
 using System.Data.Entity;
 
 namespace Recetas.Infrastructure.Persistence
@@ -17,8 +18,8 @@ namespace Recetas.Infrastructure.Persistence
 
         protected override void OnModelCreating(DbModelBuilder modelBuilder)
         {
-            modelBuilder.Configurations.Add(new Configurations.RecetaConfiguration());
-            modelBuilder.Configurations.Add(new Configurations.DetalleRecetaConfiguration());
+            modelBuilder.Configurations.Add(new RecetaConfiguration());
+            modelBuilder.Configurations.Add(new DetalleRecetaConfiguration());
             base.OnModelCreating(modelBuilder);
         }
     }

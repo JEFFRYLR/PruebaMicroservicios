@@ -1,6 +1,7 @@
 using Recetas.Domain.Entities;
 using Recetas.Domain.Interfaces;
 using Recetas.Infrastructure.Persistence;
+using System;
 using System.Collections.Generic;
 using System.Data.Entity;
 using System.Linq;
@@ -16,7 +17,7 @@ namespace Recetas.Infrastructure.Repositories
 
         public RecetaRepository(RecetasDbContext context)
         {
-            _context = context;
+            _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
         public Receta ObtenerPorId(int id)
@@ -49,6 +50,11 @@ namespace Recetas.Infrastructure.Repositories
                 .FirstOrDefault(r => r.CitaId == citaId);
         }
 
+        public void Agregar(Receta receta)
+        {
+            _context.Recetas.Add(receta);
+        }
+
         public void Crear(Receta receta)
         {
             _context.Recetas.Add(receta);
@@ -58,6 +64,11 @@ namespace Recetas.Infrastructure.Repositories
         public void Actualizar(Receta receta)
         {
             _context.Entry(receta).State = EntityState.Modified;
+            _context.SaveChanges();
+        }
+
+        public void GuardarCambios()
+        {
             _context.SaveChanges();
         }
     }

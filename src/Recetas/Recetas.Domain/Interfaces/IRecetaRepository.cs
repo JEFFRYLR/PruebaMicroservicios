@@ -12,7 +12,9 @@ namespace Recetas.Domain.Interfaces
         IEnumerable<Receta> ObtenerPorPaciente(int pacienteId);
         IEnumerable<Receta> ObtenerPorMedico(int medicoId);
         Receta ObtenerPorCita(int citaId);
+        void Agregar(Receta receta);
         void Crear(Receta receta);
         void Actualizar(Receta receta);
+        void GuardarCambios();
     }
 }
