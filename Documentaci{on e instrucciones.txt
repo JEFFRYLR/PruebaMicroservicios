@@ -1,0 +1,3114 @@
+================================================================================
+DOCUMENTACIÓN COMPLETA DEL PROYECTO
+SISTEMA DE CITAS MÉDICAS - ARQUITECTURA DE MICROSERVICIOS
+================================================================================
+
+Proyecto: CitasMedicas
+Repositorio: https://github.com/JEFFRYLR/PruebaMicroservicios
+Ubicación Local: C:\Proyectos\CitasMedicas
+Versión: 1.0.0
+Fecha de Última Actualización: Marzo 2026
+Framework: .NET Framework 4.8
+Lenguaje: C# 7.3
+
+================================================================================
+TABLA DE CONTENIDOS
+================================================================================
+
+1. RESUMEN EJECUTIVO
+2. ARQUITECTURA DEL SISTEMA
+3. MICROSERVICIOS
+4. PATRONES DE DISEÑO IMPLEMENTADOS
+5. LIBRERÍAS Y DEPENDENCIAS
+6. ESTRUCTURA DEL PROYECTO
+7. MODELO DE DATOS
+8. SEGURIDAD Y AUTENTICACIÓN
+9. GUÍA DE INSTALACIÓN
+10. GUÍA DE DESARROLLO
+11. GUÍA DE DESPLIEGUE
+12. PRUEBAS
+13. API ENDPOINTS
+14. CONFIGURACIÓN
+15. MEJORES PRÁCTICAS
+16. TROUBLESHOOTING
+17. MANTENIMIENTO
+18. ROADMAP
+
+================================================================================
+1. RESUMEN EJECUTIVO
+================================================================================
+
+DESCRIPCIÓN DEL PROYECTO
+-------------------------
+Sistema de gestión de citas médicas construido con arquitectura de 
+microservicios. Permite la administración de personas (médicos y pacientes), 
+agendamiento de citas y gestión de recetas médicas.
+
+OBJETIVOS
+---------
+✓ Gestionar información de médicos y pacientes
+✓ Agendar y administrar citas médicas
+✓ Registrar y consultar recetas médicas
+✓ Autenticación y autorización con JWT
+✓ Arquitectura escalable y mantenible
+✓ Separación de responsabilidades por microservicio
+
+CARACTERÍSTICAS PRINCIPALES
+----------------------------
+✓ Arquitectura de Microservicios
+✓ Clean Architecture (DDD)
+✓ CQRS con MediatR
+✓ Autenticación JWT
+✓ API RESTful
+✓ Documentación Swagger
+✓ Entity Framework 6
+✓ Pruebas Unitarias con NUnit
+✓ Inyección de Dependencias con Unity
+
+TECNOLOGÍAS CORE
+----------------
+- .NET Framework 4.8
+- C# 7.3
+- ASP.NET Web API 2
+- Entity Framework 6
+- SQL Server
+- JWT Authentication
+- Swagger/OpenAPI
+
+
+================================================================================
+2. ARQUITECTURA DEL SISTEMA
+================================================================================
+
+ARQUITECTURA DE MICROSERVICIOS
+-------------------------------
+
+El sistema está dividido en 3 microservicios independientes:
+
+1. PERSONAS.API (Puerto: 5001)
+   - Gestión de personas (médicos y pacientes)
+   - Autenticación de usuarios
+   - Generación de tokens JWT
+
+2. CITAS.API (Puerto: 5002)
+   - Gestión de citas médicas
+   - Agendamiento
+   - Consulta de disponibilidad
+
+3. RECETAS.API (Puerto: 5003)
+   - Gestión de recetas médicas
+   - Registro de medicamentos
+   - Consulta de historial
+
+DIAGRAMA DE ARQUITECTURA
+-------------------------
+
+┌─────────────────────────────────────────────────────────────┐
+│                        CLIENTE                               │
+│              (Web App / Mobile App / Postman)               │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+                     │ HTTP/REST + JWT Token
+                     │
+┌────────────────────┴────────────────────────────────────────┐
+│                     API GATEWAY (Opcional)                   │
+└────┬─────────────────────┬────────────────────┬─────────────┘
+     │                     │                    │
+     │                     │                    │
+┌────▼─────────┐    ┌─────▼────────┐    ┌─────▼──────────┐
+│ PERSONAS.API │    │  CITAS.API   │    │  RECETAS.API   │
+│  (Port 5001) │    │ (Port 5002)  │    │  (Port 5003)   │
+└────┬─────────┘    └─────┬────────┘    └─────┬──────────┘
+     │                    │                    │
+     │                    │                    │
+┌────▼──────────┐  ┌─────▼─────────┐  ┌──────▼──────────┐
+│ PersonasDB    │  │   CitasDB     │  │   RecetasDB     │
+│ (SQL Server)  │  │ (SQL Server)  │  │  (SQL Server)   │
+└───────────────┘  └───────────────┘  └─────────────────┘
+
+
+CLEAN ARCHITECTURE (POR MICROSERVICIO)
+---------------------------------------
+
+Cada microservicio sigue Clean Architecture con 4 capas:
+
+┌─────────────────────────────────────────────────────────────┐
+│                    4. API LAYER                              │
+│  (Controllers, Middleware, Filters, Startup)                │
+│  - Personas.API / Citas.API / Recetas.API                   │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+┌────────────────────▼────────────────────────────────────────┐
+│                 3. APPLICATION LAYER                         │
+│  (Commands, Queries, Handlers, Services, DTOs)              │
+│  - Personas.Application / Citas.Application                 │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+┌────────────────────▼────────────────────────────────────────┐
+│              2. INFRASTRUCTURE LAYER                         │
+│  (Repositories, DbContext, External Services)               │
+│  - Personas.Infrastructure / Citas.Infrastructure           │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+┌────────────────────▼────────────────────────────────────────┐
+│                  1. DOMAIN LAYER                             │
+│  (Entities, Value Objects, Enums, Interfaces)               │
+│  - Personas.Domain / Citas.Domain / Recetas.Domain          │
+└─────────────────────────────────────────────────────────────┘
+
+RESPONSABILIDADES POR CAPA
+---------------------------
+
+1. DOMAIN (Núcleo del Negocio)
+   ✓ Entidades de dominio
+   ✓ Value Objects
+   ✓ Enums
+   ✓ Interfaces de repositorios
+   ✓ Lógica de negocio pura
+   ✗ SIN dependencias externas
+   ✗ SIN referencias a otras capas
+
+2. APPLICATION (Casos de Uso)
+   ✓ Commands y Queries (CQRS)
+   ✓ Command/Query Handlers
+   ✓ DTOs (Data Transfer Objects)
+   ✓ Interfaces de servicios
+   ✓ Validaciones con FluentValidation
+   ✓ Mapeos con AutoMapper
+   → Referencia: Domain
+
+3. INFRASTRUCTURE (Implementación Técnica)
+   ✓ Implementación de repositorios
+   ✓ DbContext de Entity Framework
+   ✓ Migraciones de base de datos
+   ✓ Servicios externos (Email, SMS, etc.)
+   ✓ Configuración de EF
+   → Referencias: Domain, Application
+
+4. API (Presentación)
+   ✓ Controllers (Endpoints REST)
+   ✓ Configuración de Startup
+   ✓ Middleware
+   ✓ Filtros
+   ✓ Autenticación/Autorización
+   ✓ Swagger/OpenAPI
+   ✓ CORS
+   → Referencias: Application, Infrastructure
+
+
+================================================================================
+3. MICROSERVICIOS
+================================================================================
+
+3.1 MICROSERVICIO DE PERSONAS
+------------------------------
+
+RESPONSABILIDADES:
+- Gestión de médicos y pacientes
+- Autenticación de usuarios
+- Generación de tokens JWT
+- CRUD de personas
+
+ENDPOINTS PRINCIPALES:
+POST   /api/usuarios/autenticar       - Autenticación
+POST   /api/personas                  - Crear persona
+GET    /api/personas                  - Listar personas
+GET    /api/personas/{id}             - Obtener por ID
+PUT    /api/personas/{id}             - Actualizar persona
+DELETE /api/personas/{id}             - Eliminar persona
+
+ENTIDADES:
+- Persona (Id, Nombre, Apellido, Documento, TipoPersona)
+- Usuario (Id, PersonaId, NombreUsuario, PasswordHash, Activo)
+- Documento (TipoDocumento, Numero) [Value Object]
+
+ENUMS:
+- TipoPersona (Medico, Paciente)
+- TipoDocumento (Cedula, Pasaporte)
+
+BASE DE DATOS: PersonasDB
+PUERTO: 5001 (HTTP), 5011 (HTTPS)
+
+UBICACIÓN:
+📁 C:\Proyectos\CitasMedicas\src\Personas\
+
+
+3.2 MICROSERVICIO DE CITAS
+---------------------------
+
+RESPONSABILIDADES:
+- Gestión de citas médicas
+- Agendamiento de citas
+- Consulta de disponibilidad
+- Historial de citas
+
+ENDPOINTS PRINCIPALES:
+POST   /api/citas                     - Crear cita
+GET    /api/citas                     - Listar citas
+GET    /api/citas/{id}                - Obtener por ID
+PUT    /api/citas/{id}                - Actualizar cita
+DELETE /api/citas/{id}                - Cancelar cita
+GET    /api/citas/medico/{medicoId}   - Citas por médico
+GET    /api/citas/paciente/{pacienteId} - Citas por paciente
+
+ENTIDADES:
+- Cita (Id, MedicoId, PacienteId, FechaHora, Motivo, Estado)
+
+ENUMS:
+- EstadoCita (Pendiente, Confirmada, Cancelada, Completada)
+
+BASE DE DATOS: CitasDB
+PUERTO: 5002 (HTTP), 5012 (HTTPS)
+
+UBICACIÓN:
+📁 C:\Proyectos\CitasMedicas\src\Citas\
+
+
+3.3 MICROSERVICIO DE RECETAS
+-----------------------------
+
+RESPONSABILIDADES:
+- Gestión de recetas médicas
+- Registro de medicamentos prescritos
+- Consulta de historial de recetas
+- Validación de recetas
+
+ENDPOINTS PRINCIPALES:
+POST   /api/recetas                   - Crear receta
+GET    /api/recetas                   - Listar recetas
+GET    /api/recetas/{id}              - Obtener por ID
+PUT    /api/recetas/{id}              - Actualizar receta
+GET    /api/recetas/paciente/{id}     - Recetas por paciente
+GET    /api/recetas/medico/{id}       - Recetas por médico
+
+ENTIDADES:
+- Receta (Id, CitaId, MedicoId, PacienteId, Fecha, Medicamentos, Indicaciones)
+- Medicamento (Nombre, Dosis, Frecuencia, Duracion)
+
+BASE DE DATOS: RecetasDB
+PUERTO: 5003 (HTTP), 5013 (HTTPS)
+
+UBICACIÓN:
+📁 C:\Proyectos\CitasMedicas\src\Recetas\
+
+
+COMUNICACIÓN ENTRE MICROSERVICIOS
+----------------------------------
+
+Los microservicios son INDEPENDIENTES pero pueden comunicarse:
+
+MÉTODO 1: API Calls Directos (HTTP)
+- Citas.API llama a Personas.API para validar médico/paciente
+- Recetas.API llama a Citas.API para validar cita
+
+MÉTODO 2: Event-Driven (Futuro)
+- Message Queue (RabbitMQ, Azure Service Bus)
+- Publicar eventos cuando algo cambia
+- Suscribirse a eventos de otros servicios
+
+
+================================================================================
+4. PATRONES DE DISEÑO IMPLEMENTADOS
+================================================================================
+
+4.1 PATRONES ARQUITECTÓNICOS
+-----------------------------
+
+1. MICROSERVICES ARCHITECTURE
+   Descripción: Aplicación dividida en servicios pequeños e independientes
+   Ubicación: Todo el proyecto
+   Beneficios:
+   ✓ Escalabilidad independiente
+   ✓ Desarrollo en paralelo
+   ✓ Tecnologías heterogéneas
+   ✓ Resiliencia
+
+2. CLEAN ARCHITECTURE (ONION ARCHITECTURE)
+   Descripción: Arquitectura en capas con dependencias hacia adentro
+   Ubicación: Cada microservicio (Domain → Application → Infrastructure → API)
+   Beneficios:
+   ✓ Independencia de frameworks
+   ✓ Testeable
+   ✓ Independencia de UI
+   ✓ Independencia de base de datos
+
+3. DOMAIN-DRIVEN DESIGN (DDD)
+   Descripción: Modelado basado en el dominio del negocio
+   Ubicación: Capa Domain de cada microservicio
+   Implementación:
+   - Entidades (Persona, Usuario, Cita, Receta)
+   - Value Objects (Documento)
+   - Aggregates
+   - Repositories
+   Beneficios:
+   ✓ Modelo rico del dominio
+   ✓ Lenguaje ubicuo
+   ✓ Lógica de negocio encapsulada
+
+4. CQRS (Command Query Responsibility Segregation)
+   Descripción: Separación de operaciones de lectura y escritura
+   Ubicación: Application Layer con MediatR
+   Implementación:
+   
+   COMMANDS (Escritura):
+   📁 Personas.Application\Commands\
+      - CrearPersonaCommand
+      - ActualizarPersonaCommand
+      - AutenticarUsuarioCommand
+   
+   QUERIES (Lectura):
+   📁 Personas.Application\Queries\
+      - ObtenerPersonaPorIdQuery
+      - ObtenerTodasPersonasQuery
+   
+   Beneficios:
+   ✓ Separación clara de responsabilidades
+   ✓ Optimización independiente
+   ✓ Escalabilidad
+
+
+4.2 PATRONES DE DISEÑO CREACIONALES
+------------------------------------
+
+1. FACTORY METHOD
+   Descripción: Creación de objetos a través de métodos factory
+   Ubicación: Constructores de entidades
+   Ejemplo:
+   📁 Personas.Domain\Entities\Persona.cs
+   public Persona(string nombre, string apellido, Documento documento, 
+                  TipoPersona tipoPersona)
+   
+2. BUILDER (Implícito con Fluent Validation)
+   Descripción: Construcción paso a paso de objetos complejos
+   Ubicación: Validators
+   Ejemplo:
+   📁 Personas.Application\Validators\CrearPersonaCommandValidator.cs
+   RuleFor(x => x.Nombre).NotEmpty().MaximumLength(100);
+
+
+4.3 PATRONES DE DISEÑO ESTRUCTURALES
+-------------------------------------
+
+1. REPOSITORY PATTERN
+   Descripción: Abstracción del acceso a datos
+   Ubicación: Domain (interfaces) + Infrastructure (implementación)
+   
+   Interface:
+   📁 Personas.Domain\Interfaces\IPersonaRepository.cs
+   public interface IPersonaRepository
+   {
+       Persona ObtenerPorId(int id);
+       void Crear(Persona persona);
+       void Actualizar(Persona persona);
+       void Eliminar(int id);
+   }
+   
+   Implementación:
+   📁 Personas.Infrastructure\Repositories\PersonaRepository.cs
+   public class PersonaRepository : IPersonaRepository
+   {
+       private readonly PersonasDbContext _context;
+       // Implementación...
+   }
+   
+   Beneficios:
+   ✓ Desacoplamiento de la lógica de acceso a datos
+   ✓ Facilita las pruebas unitarias
+   ✓ Centraliza consultas
+
+2. DEPENDENCY INJECTION
+   Descripción: Inyección de dependencias para desacoplamiento
+   Ubicación: Toda la aplicación, configurado en Startup
+   Ejemplo:
+   📁 Personas.API\App_Start\UnityConfig.cs
+   container.RegisterType<IPersonaRepository, PersonaRepository>();
+   container.RegisterType<ITokenService, TokenService>();
+   
+   Uso:
+   📁 Personas.Application\CommandHandlers\CrearPersonaCommandHandler.cs
+   public CrearPersonaCommandHandler(IPersonaRepository repository)
+   {
+       _repository = repository;
+   }
+   
+   Beneficios:
+   ✓ Bajo acoplamiento
+   ✓ Facilita testing
+   ✓ Flexibilidad
+
+3. ADAPTER PATTERN (DTOs)
+   Descripción: Conversión entre objetos de diferentes capas
+   Ubicación: Application Layer
+   Ejemplo:
+   Entidad → DTO para respuesta API
+   Command → Entidad para persistencia
+
+
+4.4 PATRONES DE DISEÑO COMPORTAMENTALES
+----------------------------------------
+
+1. MEDIATOR PATTERN (MediatR)
+   Descripción: Desacoplamiento de objetos que interactúan
+   Ubicación: Application Layer
+   Implementación:
+   
+   📁 Personas.Application\Commands\CrearPersonaCommand.cs
+   public class CrearPersonaCommand : IRequest<int>
+   {
+       public string Nombre { get; set; }
+       // Propiedades...
+   }
+   
+   📁 Personas.Application\CommandHandlers\CrearPersonaCommandHandler.cs
+   public class CrearPersonaCommandHandler 
+       : IRequestHandler<CrearPersonaCommand, int>
+   {
+       public async Task<int> Handle(CrearPersonaCommand request, 
+                                     CancellationToken cancellationToken)
+       {
+           // Lógica...
+       }
+   }
+   
+   Uso en Controller:
+   📁 Personas.API\Controllers\PersonasController.cs
+   [HttpPost]
+   public async Task<IActionResult> Crear([FromBody] CrearPersonaCommand command)
+   {
+       var id = await _mediator.Send(command);
+       return CreatedAtAction(nameof(ObtenerPorId), new { id }, id);
+   }
+   
+   Beneficios:
+   ✓ Desacoplamiento total
+   ✓ Single Responsibility
+   ✓ Fácil de testear
+
+2. STRATEGY PATTERN (Validaciones)
+   Descripción: Diferentes algoritmos de validación según contexto
+   Ubicación: FluentValidation Validators
+   Ejemplo:
+   📁 Personas.Application\Validators\CrearPersonaCommandValidator.cs
+   
+3. UNIT OF WORK (Entity Framework)
+   Descripción: Gestión de transacciones
+   Ubicación: DbContext de Entity Framework
+   Implementación:
+   📁 Personas.Infrastructure\Data\PersonasDbContext.cs
+   public int SaveChanges()
+   {
+       // Todas las operaciones se confirman juntas
+       return base.SaveChanges();
+   }
+
+
+4.5 PATRONES ESPECÍFICOS DE SEGURIDAD
+--------------------------------------
+
+1. TOKEN-BASED AUTHENTICATION (JWT)
+   Descripción: Autenticación sin estado con tokens
+   Ubicación: Personas.API
+   Implementación:
+   📁 Personas.Application\Services\TokenService.cs
+   
+   Flujo:
+   1. Usuario envía credenciales
+   2. API valida credenciales
+   3. API genera JWT firmado
+   4. Cliente incluye JWT en cada request
+   5. API valida JWT en cada endpoint protegido
+   
+   Beneficios:
+   ✓ Stateless (sin sesiones en servidor)
+   ✓ Escalable
+   ✓ Funciona entre dominios
+   ✓ Expirable
+
+2. PASSWORD HASHING (BCrypt)
+   Descripción: Hash seguro de contraseñas
+   Ubicación: Personas.Application
+   Implementación:
+   📁 Personas.Application\CommandHandlers\AutenticarUsuarioCommandHandler.cs
+   
+   var passwordHash = BCrypt.Net.BCrypt.HashPassword(password);
+   var isValid = BCrypt.Net.BCrypt.Verify(password, passwordHash);
+   
+   Beneficios:
+   ✓ Contraseñas nunca en texto plano
+   ✓ Salt automático
+   ✓ Resistente a ataques de fuerza bruta
+
+
+================================================================================
+5. LIBRERÍAS Y DEPENDENCIAS
+================================================================================
+
+5.1 LIBRERÍAS POR CAPA
+----------------------
+
+DOMAIN LAYER (Sin dependencias externas)
+----------------------------------------
+Ninguna librería externa. Solo .NET Framework base.
+
+Principio: El dominio no debe depender de tecnologías externas.
+
+
+APPLICATION LAYER
+-----------------
+
+1. MediatR (v11.0.0)
+   Propósito: Implementación del patrón Mediator para CQRS
+   NuGet: Install-Package MediatR
+   Uso:
+   - IRequest<TResponse> para Commands/Queries
+   - IRequestHandler<TRequest, TResponse> para Handlers
+   Archivos:
+   📁 Personas.Application\Commands\*.cs
+   📁 Personas.Application\CommandHandlers\*.cs
+
+2. MediatR.Extensions.Microsoft.DependencyInjection (v11.0.0)
+   Propósito: Registro automático de handlers en DI
+   NuGet: Install-Package MediatR.Extensions.Microsoft.DependencyInjection
+
+3. FluentValidation (v11.5.0)
+   Propósito: Validación de Commands y Queries
+   NuGet: Install-Package FluentValidation
+   Uso:
+   📁 Personas.Application\Validators\CrearPersonaCommandValidator.cs
+   public class CrearPersonaCommandValidator : AbstractValidator<CrearPersonaCommand>
+   {
+       public CrearPersonaCommandValidator()
+       {
+           RuleFor(x => x.Nombre).NotEmpty().MaximumLength(100);
+           RuleFor(x => x.Apellido).NotEmpty().MaximumLength(100);
+       }
+   }
+
+4. FluentValidation.DependencyInjectionExtensions (v11.5.0)
+   Propósito: Integración con DI container
+   NuGet: Install-Package FluentValidation.DependencyInjectionExtensions
+
+5. AutoMapper (v12.0.1)
+   Propósito: Mapeo automático entre objetos (Entity → DTO)
+   NuGet: Install-Package AutoMapper
+   Configuración:
+   📁 Personas.Application\Mappings\MappingProfile.cs
+   public class MappingProfile : Profile
+   {
+       public MappingProfile()
+       {
+           CreateMap<Persona, PersonaDto>();
+           CreateMap<CrearPersonaCommand, Persona>();
+       }
+   }
+
+6. AutoMapper.Extensions.Microsoft.DependencyInjection (v12.0.0)
+   Propósito: Integración de AutoMapper con DI
+   NuGet: Install-Package AutoMapper.Extensions.Microsoft.DependencyInjection
+
+
+INFRASTRUCTURE LAYER
+--------------------
+
+1. EntityFramework (v6.4.4)
+   Propósito: ORM para acceso a base de datos
+   NuGet: Install-Package EntityFramework
+   Uso:
+   📁 Personas.Infrastructure\Data\PersonasDbContext.cs
+   public class PersonasDbContext : DbContext
+   {
+       public DbSet<Persona> Personas { get; set; }
+       public DbSet<Usuario> Usuarios { get; set; }
+   }
+
+2. System.Data.SqlClient (v4.8.5)
+   Propósito: Proveedor de SQL Server
+   NuGet: Install-Package System.Data.SqlClient
+
+
+API LAYER
+---------
+
+1. Microsoft.AspNet.WebApi (Incluido en .NET Framework 4.8)
+   Propósito: Framework para crear APIs REST
+   Referencias:
+   - System.Web.Http
+   - System.Web.Http.WebHost
+
+2. System.IdentityModel.Tokens.Jwt (v6.32.0)
+   Propósito: Generación y validación de tokens JWT
+   NuGet: Install-Package System.IdentityModel.Tokens.Jwt
+   Uso:
+   📁 Personas.Application\Services\TokenService.cs
+   var tokenHandler = new JwtSecurityTokenHandler();
+   var token = tokenHandler.CreateToken(tokenDescriptor);
+
+3. Microsoft.IdentityModel.Tokens (v6.32.0)
+   Propósito: Componentes para seguridad de tokens
+   NuGet: Install-Package Microsoft.IdentityModel.Tokens
+
+4. BCrypt.Net-Next (v4.0.3)
+   Propósito: Hash de contraseñas
+   NuGet: Install-Package BCrypt.Net-Next
+   Uso:
+   var hash = BCrypt.Net.BCrypt.HashPassword("password");
+   var isValid = BCrypt.Net.BCrypt.Verify("password", hash);
+
+5. Swashbuckle (v5.6.0)
+   Propósito: Generación automática de documentación Swagger
+   NuGet: Install-Package Swashbuckle
+   Configuración:
+   📁 Personas.API\App_Start\SwaggerConfig.cs
+
+6. Swashbuckle.Core (v5.6.0)
+   Propósito: Núcleo de Swashbuckle
+   NuGet: Install-Package Swashbuckle.Core
+
+7. Newtonsoft.Json (v13.0.3)
+   Propósito: Serialización/deserialización JSON
+   NuGet: Install-Package Newtonsoft.Json
+
+8. Microsoft.AspNet.Cors (v5.2.9)
+   Propósito: Habilitar CORS
+   NuGet: Install-Package Microsoft.AspNet.Cors
+
+9. Microsoft.AspNet.WebApi.Cors (v5.2.9)
+   Propósito: CORS para Web API
+   NuGet: Install-Package Microsoft.AspNet.WebApi.Cors
+
+10. Unity (v5.11.10)
+    Propósito: Contenedor de Inyección de Dependencias
+    NuGet: Install-Package Unity
+
+11. Unity.AspNet.WebApi (v5.11.2)
+    Propósito: Integración de Unity con Web API
+    NuGet: Install-Package Unity.AspNet.WebApi
+
+
+TEST LAYER
+----------
+
+1. NUnit (v3.13.3)
+   Propósito: Framework de pruebas unitarias
+   NuGet: Install-Package NUnit
+   Uso:
+   [TestFixture]
+   public class CrearPersonaCommandHandlerTests
+   {
+       [Test]
+       public async Task Handle_ConDatosValidos_DeberiaCrearPersona()
+       {
+           // Arrange, Act, Assert
+       }
+   }
+
+2. NUnit3TestAdapter (v4.5.0)
+   Propósito: Adaptador para ejecutar tests en Visual Studio
+   NuGet: Install-Package NUnit3TestAdapter
+
+3. Moq (v4.18.4)
+   Propósito: Framework de mocking para tests
+   NuGet: Install-Package Moq
+   Uso:
+   var mockRepository = new Mock<IPersonaRepository>();
+   mockRepository.Setup(x => x.ObtenerPorId(1)).Returns(persona);
+
+4. FluentAssertions (v6.11.0)
+   Propósito: Aserciones más legibles en tests
+   NuGet: Install-Package FluentAssertions
+   Uso:
+   resultado.Should().NotBeNull();
+   resultado.Nombre.Should().Be("Juan");
+
+5. Microsoft.NET.Test.Sdk (v17.6.0)
+   Propósito: SDK de testing
+   NuGet: Install-Package Microsoft.NET.Test.Sdk
+
+
+5.2 VERSIONES Y COMPATIBILIDAD
+-------------------------------
+
+FRAMEWORK BASE:
+- .NET Framework: 4.8
+- C# Language Version: 7.3
+
+MATRIZ DE COMPATIBILIDAD:
+Todas las librerías son compatibles con .NET Framework 4.8
+
+ACTUALIZACIÓN DE PAQUETES:
+Para actualizar todos los paquetes:
+1. Abrir Package Manager Console
+2. Ejecutar: Update-Package -ProjectName Personas.API
+3. Repetir para cada proyecto
+
+
+================================================================================
+6. ESTRUCTURA DEL PROYECTO
+================================================================================
+
+ESTRUCTURA COMPLETA DE CARPETAS
+--------------------------------
+
+C:\Proyectos\CitasMedicas\
+│
+├── src\                              # Código fuente
+│   ├── Personas\                     # Microservicio de Personas
+│   │   ├── Personas.Domain\          # Capa de dominio
+│   │   │   ├── Entities\
+│   │   │   │   ├── Persona.cs
+│   │   │   │   └── Usuario.cs
+│   │   │   ├── ValueObjects\
+│   │   │   │   └── Documento.cs
+│   │   │   ├── Enums\
+│   │   │   │   ├── TipoPersona.cs
+│   │   │   │   └── TipoDocumento.cs
+│   │   │   └── Interfaces\
+│   │   │       ├── IPersonaRepository.cs
+│   │   │       └── IUsuarioRepository.cs
+│   │   │
+│   │   ├── Personas.Application\     # Capa de aplicación
+│   │   │   ├── Commands\
+│   │   │   │   ├── CrearPersonaCommand.cs
+│   │   │   │   ├── ActualizarPersonaCommand.cs
+│   │   │   │   └── AutenticarUsuarioCommand.cs
+│   │   │   ├── CommandHandlers\
+│   │   │   │   ├── CrearPersonaCommandHandler.cs
+│   │   │   │   ├── ActualizarPersonaCommandHandler.cs
+│   │   │   │   └── AutenticarUsuarioCommandHandler.cs
+│   │   │   ├── Queries\
+│   │   │   │   ├── ObtenerPersonaPorIdQuery.cs
+│   │   │   │   └── ObtenerTodasPersonasQuery.cs
+│   │   │   ├── QueryHandlers\
+│   │   │   ├── DTOs\
+│   │   │   ├── Validators\
+│   │   │   ├── Mappings\
+│   │   │   ├── Services\
+│   │   │   │   └── TokenService.cs
+│   │   │   └── Interfaces\
+│   │   │       └── ITokenService.cs
+│   │   │
+│   │   ├── Personas.Infrastructure\  # Capa de infraestructura
+│   │   │   ├── Data\
+│   │   │   │   └── PersonasDbContext.cs
+│   │   │   ├── Repositories\
+│   │   │   │   ├── PersonaRepository.cs
+│   │   │   │   └── UsuarioRepository.cs
+│   │   │   ├── Configurations\
+│   │   │   └── Migrations\
+│   │   │
+│   │   └── Personas.API\             # Capa de presentación
+│   │       ├── Controllers\
+│   │       │   ├── PersonasController.cs
+│   │       │   └── UsuariosController.cs
+│   │       ├── App_Start\
+│   │       │   ├── UnityConfig.cs
+│   │       │   ├── SwaggerConfig.cs
+│   │       │   └── WebApiConfig.cs
+│   │       ├── Filters\
+│   │       ├── Middleware\
+│   │       ├── Web.config
+│   │       └── Global.asax.cs
+│   │
+│   ├── Citas\                        # Microservicio de Citas
+│   │   ├── Citas.Domain\
+│   │   ├── Citas.Application\
+│   │   ├── Citas.Infrastructure\
+│   │   └── Citas.API\
+│   │
+│   └── Recetas\                      # Microservicio de Recetas
+│       ├── Recetas.Domain\
+│       ├── Recetas.Application\
+│       ├── Recetas.Infrastructure\
+│       └── Recetas.API\
+│
+├── tests\                            # Pruebas
+│   ├── Personas.Pruebas\
+│   │   ├── Domain\
+│   │   ├── Aplicacion\
+│   │   │   ├── CommandHandlers\
+│   │   │   │   ├── CrearPersonaCommandHandlerTests.cs
+│   │   │   │   ├── ActualizarPersonaCommandHandlerTests.cs
+│   │   │   │   └── AutenticarUsuarioCommandHandlerTests.cs
+│   │   │   └── QueryHandlers\
+│   │   └── Infrastructure\
+│   ├── Citas.Tests\
+│   └── Recetas.Tests\
+│
+├── docs\                             # Documentación
+│   ├── api\
+│   ├── architecture\
+│   └── deployment\
+│
+├── scripts\                          # Scripts útiles
+│   ├── database\
+│   │   ├── create-databases.sql
+│   │   └── seed-data.sql
+│   └── deployment\
+│
+├── .gitignore
+├── README.md
+└── CitasMedicas.sln                  # Solución de Visual Studio
+
+
+CONVENCIONES DE NOMENCLATURA
+-----------------------------
+
+CARPETAS:
+- PascalCase para carpetas de proyectos
+- lowercase para carpetas de scripts
+
+ARCHIVOS C#:
+- Entidades: PascalCase (Persona.cs, Usuario.cs)
+- Interfaces: IPascalCase (IPersonaRepository.cs)
+- Commands: [Verbo][Sustantivo]Command.cs (CrearPersonaCommand.cs)
+- Handlers: [Command/Query]Handler.cs (CrearPersonaCommandHandler.cs)
+- Tests: [Clase]Tests.cs (CrearPersonaCommandHandlerTests.cs)
+
+NAMESPACES:
+- Formato: [Microservicio].[Capa].[Subcarpeta]
+- Ejemplo: Personas.Application.CommandHandlers
+
+
+================================================================================
+7. MODELO DE DATOS
+================================================================================
+
+7.1 BASE DE DATOS: PersonasDB
+------------------------------
+
+TABLA: Personas
+---------------
+CREATE TABLE Personas (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    Nombre NVARCHAR(100) NOT NULL,
+    Apellido NVARCHAR(100) NOT NULL,
+    TipoDocumento INT NOT NULL,           -- 1=Cedula, 2=Pasaporte
+    NumeroDocumento NVARCHAR(50) NOT NULL,
+    TipoPersona INT NOT NULL,             -- 1=Medico, 2=Paciente
+    FechaCreacion DATETIME2 NOT NULL DEFAULT GETDATE(),
+    FechaModificacion DATETIME2 NULL,
+    CONSTRAINT UK_Personas_Documento UNIQUE (TipoDocumento, NumeroDocumento)
+);
+
+TABLA: Usuarios
+---------------
+CREATE TABLE Usuarios (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    PersonaId INT NOT NULL,
+    NombreUsuario NVARCHAR(50) NOT NULL UNIQUE,
+    PasswordHash NVARCHAR(255) NOT NULL,
+    Activo BIT NOT NULL DEFAULT 1,
+    FechaCreacion DATETIME2 NOT NULL DEFAULT GETDATE(),
+    CONSTRAINT FK_Usuarios_Personas FOREIGN KEY (PersonaId) 
+        REFERENCES Personas(Id)
+);
+
+ÍNDICES:
+CREATE INDEX IX_Personas_TipoPersona ON Personas(TipoPersona);
+CREATE INDEX IX_Usuarios_NombreUsuario ON Usuarios(NombreUsuario);
+
+
+7.2 BASE DE DATOS: CitasDB
+---------------------------
+
+TABLA: Citas
+------------
+CREATE TABLE Citas (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    MedicoId INT NOT NULL,
+    PacienteId INT NOT NULL,
+    FechaHora DATETIME2 NOT NULL,
+    Motivo NVARCHAR(500) NULL,
+    Estado INT NOT NULL DEFAULT 1,        -- 1=Pendiente, 2=Confirmada, 
+                                          -- 3=Cancelada, 4=Completada
+    Observaciones NVARCHAR(1000) NULL,
+    FechaCreacion DATETIME2 NOT NULL DEFAULT GETDATE(),
+    FechaModificacion DATETIME2 NULL
+);
+
+ÍNDICES:
+CREATE INDEX IX_Citas_MedicoId ON Citas(MedicoId);
+CREATE INDEX IX_Citas_PacienteId ON Citas(PacienteId);
+CREATE INDEX IX_Citas_FechaHora ON Citas(FechaHora);
+CREATE INDEX IX_Citas_Estado ON Citas(Estado);
+
+
+7.3 BASE DE DATOS: RecetasDB
+-----------------------------
+
+TABLA: Recetas
+--------------
+CREATE TABLE Recetas (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    CitaId INT NOT NULL,
+    MedicoId INT NOT NULL,
+    PacienteId INT NOT NULL,
+    Fecha DATETIME2 NOT NULL,
+    Diagnostico NVARCHAR(500) NULL,
+    Indicaciones NVARCHAR(1000) NULL,
+    FechaCreacion DATETIME2 NOT NULL DEFAULT GETDATE(),
+    FechaModificacion DATETIME2 NULL
+);
+
+TABLA: Medicamentos
+-------------------
+CREATE TABLE Medicamentos (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    RecetaId INT NOT NULL,
+    Nombre NVARCHAR(200) NOT NULL,
+    Dosis NVARCHAR(100) NOT NULL,
+    Frecuencia NVARCHAR(100) NOT NULL,
+    Duracion NVARCHAR(100) NOT NULL,
+    Observaciones NVARCHAR(500) NULL,
+    CONSTRAINT FK_Medicamentos_Recetas FOREIGN KEY (RecetaId) 
+        REFERENCES Recetas(Id) ON DELETE CASCADE
+);
+
+ÍNDICES:
+CREATE INDEX IX_Recetas_CitaId ON Recetas(CitaId);
+CREATE INDEX IX_Recetas_MedicoId ON Recetas(MedicoId);
+CREATE INDEX IX_Recetas_PacienteId ON Recetas(PacienteId);
+CREATE INDEX IX_Medicamentos_RecetaId ON Medicamentos(RecetaId);
+
+
+7.4 DIAGRAMA ENTIDAD-RELACIÓN
+------------------------------
+
+PersonasDB:
+┌──────────────┐         ┌──────────────┐
+│   Personas   │         │   Usuarios   │
+├──────────────┤         ├──────────────┤
+│ Id (PK)      │◄───────┤ Id (PK)      │
+│ Nombre       │         │ PersonaId(FK)│
+│ Apellido     │         │ NombreUsuario│
+│ TipoDoc      │         │ PasswordHash │
+│ NumeroDoc    │         │ Activo       │
+│ TipoPersona  │         │ FechaCreacion│
+└──────────────┘         └──────────────┘
+
+CitasDB:
+┌──────────────┐
+│    Citas     │
+├──────────────┤
+│ Id (PK)      │
+│ MedicoId     │ ───┐
+│ PacienteId   │    │ Referencias a PersonasDB.Personas.Id
+│ FechaHora    │    │ (No FK físico, microservicios separados)
+│ Motivo       │    │
+│ Estado       │ ───┘
+│ Observaciones│
+└──────────────┘
+
+RecetasDB:
+┌──────────────┐         ┌──────────────┐
+│   Recetas    │         │ Medicamentos │
+├──────────────┤         ├──────────────┤
+│ Id (PK)      │◄───────┤ Id (PK)      │
+│ CitaId       │         │ RecetaId (FK)│
+│ MedicoId     │         │ Nombre       │
+│ PacienteId   │         │ Dosis        │
+│ Fecha        │         │ Frecuencia   │
+│ Diagnostico  │         │ Duracion     │
+└──────────────┘         └──────────────┘
+
+
+7.5 DATOS DE PRUEBA (SEED DATA)
+--------------------------------
+
+-- Insertar Médicos
+INSERT INTO Personas (Nombre, Apellido, TipoDocumento, NumeroDocumento, TipoPersona)
+VALUES 
+    ('Juan', 'Perez', 1, '12345678', 1),
+    ('Maria', 'Rodriguez', 1, '87654321', 1);
+
+-- Insertar Pacientes
+INSERT INTO Personas (Nombre, Apellido, TipoDocumento, NumeroDocumento, TipoPersona)
+VALUES 
+    ('Carlos', 'Gomez', 1, '11111111', 2),
+    ('Ana', 'Martinez', 2, 'ABC123', 2);
+
+-- Insertar Usuarios (password: "1234")
+INSERT INTO Usuarios (PersonaId, NombreUsuario, PasswordHash, Activo)
+VALUES 
+    (1, 'medico1', '$2a$11$...[hash de BCrypt]...', 1),
+    (2, 'medico2', '$2a$11$...[hash de BCrypt]...', 1),
+    (3, 'paciente1', '$2a$11$...[hash de BCrypt]...', 1),
+    (4, 'paciente2', '$2a$11$...[hash de BCrypt]...', 1);
+
+
+================================================================================
+8. SEGURIDAD Y AUTENTICACIÓN
+================================================================================
+
+8.1 AUTENTICACIÓN JWT
+---------------------
+
+FLUJO DE AUTENTICACIÓN:
+1. Cliente envía credenciales (POST /api/usuarios/autenticar)
+2. API valida usuario y contraseña
+3. API genera token JWT firmado
+4. Cliente guarda token
+5. Cliente incluye token en header Authorization de cada request
+6. API valida token en cada endpoint protegido
+
+ESTRUCTURA DEL TOKEN JWT:
+{
+  "header": {
+    "alg": "HS256",
+    "typ": "JWT"
+  },
+  "payload": {
+    "sub": "1",                          // ID del usuario
+    "unique_name": "medico1",            // Nombre de usuario
+    "nameid": "1",                       // ID de la persona
+    "given_name": "Juan",                // Nombre
+    "family_name": "Perez",              // Apellido
+    "role": "Medico",                    // Rol
+    "nbf": 1709222400,                   // Not Before
+    "exp": 1709308800,                   // Expiration (24h después)
+    "iat": 1709222400                    // Issued At
+  },
+  "signature": "HMACSHA256(base64UrlEncode(header) + '.' + 
+                           base64UrlEncode(payload), secret)"
+}
+
+CONFIGURACIÓN EN appsettings.json:
+{
+  "JwtSettings": {
+    "SecretKey": "clave-secreta-de-al-menos-32-caracteres-para-firmar-tokens",
+    "Issuer": "PersonasAPI",
+    "Audience": "PersonasAPIUsers",
+    "ExpirationHours": 24
+  }
+}
+
+IMPLEMENTACIÓN:
+📁 Personas.Application\Services\TokenService.cs
+
+
+8.2 HASH DE CONTRASEÑAS CON BCRYPT
+-----------------------------------
+
+GENERACIÓN DE HASH:
+var passwordHash = BCrypt.Net.BCrypt.HashPassword("1234");
+// Resultado: $2a$11$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy
+
+VERIFICACIÓN:
+var isValid = BCrypt.Net.BCrypt.Verify("1234", passwordHash);
+// Resultado: true o false
+
+CARACTERÍSTICAS:
+✓ Salt automático único por contraseña
+✓ Work factor configurable (complejidad)
+✓ Resistente a ataques de fuerza bruta
+✓ Irreversible
+
+NUNCA ALMACENAR:
+✗ Contraseñas en texto plano
+✗ Contraseñas con MD5 o SHA1
+✗ Salt separado del hash
+
+
+8.3 PROTECCIÓN DE ENDPOINTS
+----------------------------
+
+SIN AUTENTICACIÓN (Público):
+[AllowAnonymous]
+[HttpPost("autenticar")]
+public async Task<IActionResult> Autenticar([FromBody] AutenticarUsuarioCommand command)
+{
+    // Cualquiera puede acceder
+}
+
+CON AUTENTICACIÓN (Requiere token válido):
+[Authorize]
+[HttpGet]
+public async Task<IActionResult> ObtenerTodas()
+{
+    // Solo usuarios autenticados
+}
+
+CON AUTENTICACIÓN Y ROL ESPECÍFICO:
+[Authorize(Roles = "Medico")]
+[HttpPost]
+public async Task<IActionResult> CrearCita([FromBody] CrearCitaCommand command)
+{
+    // Solo médicos autenticados
+}
+
+[Authorize(Roles = "Medico,Paciente")]
+[HttpGet("{id}")]
+public async Task<IActionResult> ObtenerPorId(int id)
+{
+    // Médicos o pacientes autenticados
+}
+
+
+8.4 CORS (Cross-Origin Resource Sharing)
+-----------------------------------------
+
+CONFIGURACIÓN:
+📁 Personas.API\App_Start\WebApiConfig.cs
+
+public static void Register(HttpConfiguration config)
+{
+    // Habilitar CORS
+    var cors = new EnableCorsAttribute(
+        origins: "*",              // Permitir todos los orígenes (cambiar en producción)
+        headers: "*",              // Permitir todos los headers
+        methods: "*"               // Permitir todos los métodos HTTP
+    );
+    config.EnableCors(cors);
+    
+    // Otras configuraciones...
+}
+
+PRODUCCIÓN (Restringido):
+var cors = new EnableCorsAttribute(
+    origins: "https://mi-app-frontend.com",
+    headers: "Authorization,Content-Type",
+    methods: "GET,POST,PUT,DELETE"
+);
+
+
+8.5 HTTPS
+---------
+
+DESARROLLO:
+📁 Personas.API\Properties\launchSettings.json
+{
+  "profiles": {
+    "Personas.API": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "applicationUrl": "https://localhost:5001;http://localhost:5000"
+    }
+  }
+}
+
+PRODUCCIÓN:
+- Certificado SSL válido
+- Redirect HTTP → HTTPS
+- HSTS (HTTP Strict Transport Security)
+- Configurar en IIS o servidor web
+
+
+8.6 VALIDACIÓN DE ENTRADA
+--------------------------
+
+FLUENT VALIDATION:
+📁 Personas.Application\Validators\CrearPersonaCommandValidator.cs
+
+public class CrearPersonaCommandValidator : AbstractValidator<CrearPersonaCommand>
+{
+    public CrearPersonaCommandValidator()
+    {
+        RuleFor(x => x.Nombre)
+            .NotEmpty().WithMessage("El nombre es requerido")
+            .MaximumLength(100).WithMessage("Máximo 100 caracteres");
+        
+        RuleFor(x => x.NumeroDocumento)
+            .NotEmpty()
+            .Matches(@"^[a-zA-Z0-9]+$").WithMessage("Solo alfanumérico");
+    }
+}
+
+PREVENCIÓN DE ATAQUES:
+✓ SQL Injection: Entity Framework usa parámetros
+✓ XSS: Validación y encoding automático
+✓ CSRF: Token-based authentication (stateless)
+✓ Mass Assignment: DTOs específicos, no entidades directas
+
+
+================================================================================
+9. GUÍA DE INSTALACIÓN
+================================================================================
+
+9.1 PRERREQUISITOS
+------------------
+
+SOFTWARE REQUERIDO:
+1. Visual Studio 2019 o superior
+   - Workload: ASP.NET and web development
+   - Workload: .NET Framework 4.8 development tools
+
+2. SQL Server 2016 o superior
+   - SQL Server Management Studio (SSMS)
+   - SQL Server Express es suficiente para desarrollo
+
+3. .NET Framework 4.8 SDK
+
+4. Git (opcional pero recomendado)
+
+5. Postman o herramienta similar (para probar APIs)
+
+
+9.2 CLONAR EL REPOSITORIO
+--------------------------
+
+OPCIÓN 1: HTTPS
+git clone https://github.com/JEFFRYLR/PruebaMicroservicios.git
+cd PruebaMicroservicios
+
+OPCIÓN 2: SSH
+git clone git@github.com:JEFFRYLR/PruebaMicroservicios.git
+cd PruebaMicroservicios
+
+OPCIÓN 3: Descargar ZIP
+1. Ir a https://github.com/JEFFRYLR/PruebaMicroservicios
+2. Click en "Code" → "Download ZIP"
+3. Extraer en C:\Proyectos\CitasMedicas
+
+
+9.3 CONFIGURAR BASES DE DATOS
+------------------------------
+
+PASO 1: Crear Bases de Datos
+-----------------------------
+Abrir SQL Server Management Studio y ejecutar:
+
+-- Crear bases de datos
+CREATE DATABASE PersonasDB;
+GO
+
+CREATE DATABASE CitasDB;
+GO
+
+CREATE DATABASE RecetasDB;
+GO
+
+
+PASO 2: Configurar Connection Strings
+--------------------------------------
+Editar en cada microservicio:
+
+📁 C:\Proyectos\CitasMedicas\src\Personas\Personas.API\Web.config
+<connectionStrings>
+  <add name="PersonasDB" 
+       connectionString="Server=localhost;Database=PersonasDB;Integrated Security=true;" 
+       providerName="System.Data.SqlClient" />
+</connectionStrings>
+
+📁 C:\Proyectos\CitasMedicas\src\Citas\Citas.API\Web.config
+<connectionStrings>
+  <add name="CitasDB" 
+       connectionString="Server=localhost;Database=CitasDB;Integrated Security=true;" 
+       providerName="System.Data.SqlClient" />
+</connectionStrings>
+
+📁 C:\Proyectos\CitasMedicas\src\Recetas\Recetas.API\Web.config
+<connectionStrings>
+  <add name="RecetasDB" 
+       connectionString="Server=localhost;Database=RecetasDB;Integrated Security=true;" 
+       providerName="System.Data.SqlClient" />
+</connectionStrings>
+
+NOTA: Si usas SQL Server Authentication:
+connectionString="Server=localhost;Database=PersonasDB;User Id=sa;Password=TuPassword;"
+
+
+PASO 3: Ejecutar Migraciones
+-----------------------------
+En Visual Studio, abrir Package Manager Console y ejecutar:
+
+# Para Personas
+PM> Update-Database -Project Personas.Infrastructure -StartupProject Personas.API
+
+# Para Citas
+PM> Update-Database -Project Citas.Infrastructure -StartupProject Citas.API
+
+# Para Recetas
+PM> Update-Database -Project Recetas.Infrastructure -StartupProject Recetas.API
+
+
+PASO 4: Insertar Datos de Prueba (Opcional)
+--------------------------------------------
+Ejecutar el script:
+📁 C:\Proyectos\CitasMedicas\scripts\database\seed-data.sql
+
+O ejecutar manualmente:
+
+USE PersonasDB;
+GO
+
+-- Insertar médicos
+INSERT INTO Personas (Nombre, Apellido, TipoDocumento, NumeroDocumento, TipoPersona)
+VALUES 
+    ('Juan', 'Perez', 1, '12345678', 1),
+    ('Maria', 'Rodriguez', 1, '87654321', 1);
+
+-- Insertar pacientes
+INSERT INTO Personas (Nombre, Apellido, TipoDocumento, NumeroDocumento, TipoPersona)
+VALUES 
+    ('Carlos', 'Gomez', 1, '11111111', 2),
+    ('Ana', 'Martinez', 2, 'ABC123', 2);
+
+-- Insertar usuarios (password: "1234")
+-- NOTA: Generar hashes reales con BCrypt
+INSERT INTO Usuarios (PersonaId, NombreUsuario, PasswordHash, Activo)
+VALUES 
+    (1, 'medico1', '$2a$11$[HASH_BCRYPT_REAL]', 1),
+    (2, 'medico2', '$2a$11$[HASH_BCRYPT_REAL]', 1),
+    (3, 'paciente1', '$2a$11$[HASH_BCRYPT_REAL]', 1);
+
+
+9.4 RESTAURAR PAQUETES NuGet
+-----------------------------
+
+En Visual Studio:
+1. Clic derecho en la solución "CitasMedicas"
+2. Seleccionar "Restore NuGet Packages"
+3. Esperar a que se descarguen todas las dependencias
+
+O desde línea de comandos:
+cd C:\Proyectos\CitasMedicas
+nuget restore CitasMedicas.sln
+
+
+9.5 COMPILAR LA SOLUCIÓN
+-------------------------
+
+En Visual Studio:
+1. Seleccionar "Build" → "Rebuild Solution"
+2. Verificar que no haya errores en el Output
+
+O desde línea de comandos:
+msbuild CitasMedicas.sln /t:Rebuild /p:Configuration=Debug
+
+
+9.6 CONFIGURAR MÚLTIPLES PROYECTOS DE INICIO
+---------------------------------------------
+
+Para ejecutar los 3 microservicios simultáneamente:
+
+1. Clic derecho en la solución "CitasMedicas"
+2. Seleccionar "Properties"
+3. En "Common Properties" → "Startup Project"
+4. Seleccionar "Multiple startup projects"
+5. Configurar:
+   - Personas.API: Start
+   - Citas.API: Start
+   - Recetas.API: Start
+6. Click "OK"
+
+
+9.7 EJECUTAR LA APLICACIÓN
+---------------------------
+
+OPCIÓN 1: Desde Visual Studio
+1. Presionar F5 o Click en "Start"
+2. Se abrirán 3 ventanas del navegador (una por microservicio)
+3. URLs:
+   - https://localhost:5001/swagger (Personas)
+   - https://localhost:5002/swagger (Citas)
+   - https://localhost:5003/swagger (Recetas)
+
+OPCIÓN 2: Desde Línea de Comandos
+# Terminal 1 - Personas
+cd C:\Proyectos\CitasMedicas\src\Personas\Personas.API
+dotnet run
+
+# Terminal 2 - Citas
+cd C:\Proyectos\CitasMedicas\src\Citas\Citas.API
+dotnet run
+
+# Terminal 3 - Recetas
+cd C:\Proyectos\CitasMedicas\src\Recetas\Recetas.API
+dotnet run
+
+
+9.8 VERIFICAR INSTALACIÓN
+--------------------------
+
+PRUEBA 1: Swagger UI
+1. Abrir navegador en https://localhost:5001/swagger
+2. Debería ver la documentación de Personas API
+3. Repetir para puertos 5002 y 5003
+
+PRUEBA 2: Health Check (si está implementado)
+GET https://localhost:5001/api/health
+Respuesta esperada: { "status": "Healthy" }
+
+PRUEBA 3: Autenticación
+POST https://localhost:5001/api/usuarios/autenticar
+Body:
+{
+  "nombreUsuario": "medico1",
+  "password": "1234"
+}
+Respuesta esperada: Token JWT
+
+PRUEBA 4: Endpoint Protegido
+GET https://localhost:5001/api/personas
+Header: Authorization: Bearer [TOKEN]
+Respuesta esperada: Lista de personas
+
+
+9.9 SOLUCIÓN DE PROBLEMAS DE INSTALACIÓN
+-----------------------------------------
+
+PROBLEMA: "Could not load file or assembly..."
+SOLUCIÓN: 
+- Limpiar solución: Build → Clean Solution
+- Rebuild: Build → Rebuild Solution
+- Restaurar paquetes NuGet
+
+PROBLEMA: "Cannot connect to SQL Server"
+SOLUCIÓN:
+- Verificar que SQL Server esté ejecutándose
+- Verificar connection string en Web.config
+- Verificar permisos del usuario
+
+PROBLEMA: "Port already in use"
+SOLUCIÓN:
+- Cambiar puertos en launchSettings.json
+- O cerrar aplicación que use el puerto:
+  netstat -ano | findstr :5001
+  taskkill /PID [PID] /F
+
+PROBLEMA: "JWT token validation failed"
+SOLUCIÓN:
+- Verificar que JwtSettings:SecretKey sea la MISMA en todos los microservicios
+- Verificar que el token no haya expirado
+- Verificar formato del header: "Bearer [token]"
+
+
+================================================================================
+10. GUÍA DE DESARROLLO
+================================================================================
+
+10.1 AGREGAR UNA NUEVA ENTIDAD
+-------------------------------
+
+EJEMPLO: Agregar entidad "Especialidad" al microservicio Personas
+
+PASO 1: Crear Entidad en Domain
+📁 Personas.Domain\Entities\Especialidad.cs
+
+namespace Personas.Domain.Entities
+{
+    public class Especialidad
+    {
+        public int Id { get; private set; }
+        public string Nombre { get; private set; }
+        public string Descripcion { get; private set; }
+        
+        protected Especialidad() { }
+        
+        public Especialidad(string nombre, string descripcion)
+        {
+            if (string.IsNullOrWhiteSpace(nombre))
+                throw new ArgumentException("Nombre requerido");
+            
+            Nombre = nombre;
+            Descripcion = descripcion;
+        }
+        
+        public void Actualizar(string nombre, string descripcion)
+        {
+            if (string.IsNullOrWhiteSpace(nombre))
+                throw new ArgumentException("Nombre requerido");
+            
+            Nombre = nombre;
+            Descripcion = descripcion;
+        }
+    }
+}
+
+PASO 2: Crear Interface del Repositorio
+📁 Personas.Domain\Interfaces\IEspecialidadRepository.cs
+
+public interface IEspecialidadRepository
+{
+    Especialidad ObtenerPorId(int id);
+    IEnumerable<Especialidad> ObtenerTodas();
+    void Crear(Especialidad especialidad);
+    void Actualizar(Especialidad especialidad);
+    void Eliminar(int id);
+}
+
+PASO 3: Implementar Repositorio
+📁 Personas.Infrastructure\Repositories\EspecialidadRepository.cs
+
+public class EspecialidadRepository : IEspecialidadRepository
+{
+    private readonly PersonasDbContext _context;
+    
+    public EspecialidadRepository(PersonasDbContext context)
+    {
+        _context = context;
+    }
+    
+    public Especialidad ObtenerPorId(int id)
+    {
+        return _context.Especialidades.Find(id);
+    }
+    
+    public IEnumerable<Especialidad> ObtenerTodas()
+    {
+        return _context.Especialidades.ToList();
+    }
+    
+    public void Crear(Especialidad especialidad)
+    {
+        _context.Especialidades.Add(especialidad);
+        _context.SaveChanges();
+    }
+    
+    public void Actualizar(Especialidad especialidad)
+    {
+        _context.Entry(especialidad).State = EntityState.Modified;
+        _context.SaveChanges();
+    }
+    
+    public void Eliminar(int id)
+    {
+        var especialidad = _context.Especialidades.Find(id);
+        if (especialidad != null)
+        {
+            _context.Especialidades.Remove(especialidad);
+            _context.SaveChanges();
+        }
+    }
+}
+
+PASO 4: Agregar DbSet al Contexto
+📁 Personas.Infrastructure\Data\PersonasDbContext.cs
+
+public class PersonasDbContext : DbContext
+{
+    public DbSet<Persona> Personas { get; set; }
+    public DbSet<Usuario> Usuarios { get; set; }
+    public DbSet<Especialidad> Especialidades { get; set; } // AGREGAR
+    
+    // ...
+}
+
+PASO 5: Crear y Ejecutar Migración
+PM> Add-Migration AgregarEspecialidad -Project Personas.Infrastructure
+PM> Update-Database -Project Personas.Infrastructure
+
+PASO 6: Crear Command
+📁 Personas.Application\Commands\CrearEspecialidadCommand.cs
+
+public class CrearEspecialidadCommand : IRequest<int>
+{
+    public string Nombre { get; set; }
+    public string Descripcion { get; set; }
+}
+
+PASO 7: Crear Handler
+📁 Personas.Application\CommandHandlers\CrearEspecialidadCommandHandler.cs
+
+public class CrearEspecialidadCommandHandler 
+    : IRequestHandler<CrearEspecialidadCommand, int>
+{
+    private readonly IEspecialidadRepository _repository;
+    
+    public CrearEspecialidadCommandHandler(IEspecialidadRepository repository)
+    {
+        _repository = repository;
+    }
+    
+    public async Task<int> Handle(CrearEspecialidadCommand request, 
+                                  CancellationToken cancellationToken)
+    {
+        var especialidad = new Especialidad(request.Nombre, request.Descripcion);
+        _repository.Crear(especialidad);
+        return especialidad.Id;
+    }
+}
+
+PASO 8: Crear Validator
+📁 Personas.Application\Validators\CrearEspecialidadCommandValidator.cs
+
+public class CrearEspecialidadCommandValidator 
+    : AbstractValidator<CrearEspecialidadCommand>
+{
+    public CrearEspecialidadCommandValidator()
+    {
+        RuleFor(x => x.Nombre)
+            .NotEmpty()
+            .MaximumLength(100);
+        
+        RuleFor(x => x.Descripcion)
+            .MaximumLength(500);
+    }
+}
+
+PASO 9: Crear Controller
+📁 Personas.API\Controllers\EspecialidadesController.cs
+
+[Authorize]
+[RoutePrefix("api/especialidades")]
+public class EspecialidadesController : ApiController
+{
+    private readonly IMediator _mediator;
+    
+    public EspecialidadesController(IMediator mediator)
+    {
+        _mediator = mediator;
+    }
+    
+    [HttpPost]
+    public async Task<IHttpActionResult> Crear([FromBody] CrearEspecialidadCommand command)
+    {
+        var id = await _mediator.Send(command);
+        return CreatedAtRoute("ObtenerEspecialidad", new { id }, id);
+    }
+    
+    // Otros endpoints...
+}
+
+PASO 10: Registrar Dependencias
+📁 Personas.API\App_Start\UnityConfig.cs
+
+container.RegisterType<IEspecialidadRepository, EspecialidadRepository>();
+
+PASO 11: Crear Pruebas Unitarias
+📁 Personas.Pruebas\Aplicacion\CommandHandlers\CrearEspecialidadCommandHandlerTests.cs
+
+
+10.2 AGREGAR UN NUEVO ENDPOINT
+-------------------------------
+
+EJEMPLO: Endpoint para buscar personas por nombre
+
+PASO 1: Crear Query
+📁 Personas.Application\Queries\BuscarPersonasPorNombreQuery.cs
+
+public class BuscarPersonasPorNombreQuery : IRequest<IEnumerable<PersonaDto>>
+{
+    public string Nombre { get; set; }
+}
+
+PASO 2: Crear Handler
+📁 Personas.Application\QueryHandlers\BuscarPersonasPorNombreQueryHandler.cs
+
+public class BuscarPersonasPorNombreQueryHandler 
+    : IRequestHandler<BuscarPersonasPorNombreQuery, IEnumerable<PersonaDto>>
+{
+    private readonly IPersonaRepository _repository;
+    private readonly IMapper _mapper;
+    
+    public BuscarPersonasPorNombreQueryHandler(
+        IPersonaRepository repository, 
+        IMapper mapper)
+    {
+        _repository = repository;
+        _mapper = mapper;
+    }
+    
+    public async Task<IEnumerable<PersonaDto>> Handle(
+        BuscarPersonasPorNombreQuery request, 
+        CancellationToken cancellationToken)
+    {
+        var personas = _repository.BuscarPorNombre(request.Nombre);
+        return _mapper.Map<IEnumerable<PersonaDto>>(personas);
+    }
+}
+
+PASO 3: Agregar método al Repositorio
+📁 Personas.Domain\Interfaces\IPersonaRepository.cs
+
+IEnumerable<Persona> BuscarPorNombre(string nombre);
+
+📁 Personas.Infrastructure\Repositories\PersonaRepository.cs
+
+public IEnumerable<Persona> BuscarPorNombre(string nombre)
+{
+    return _context.Personas
+        .Where(p => p.Nombre.Contains(nombre) || p.Apellido.Contains(nombre))
+        .ToList();
+}
+
+PASO 4: Agregar Endpoint al Controller
+📁 Personas.API\Controllers\PersonasController.cs
+
+[HttpGet]
+[Route("buscar")]
+public async Task<IHttpActionResult> Buscar([FromUri] string nombre)
+{
+    if (string.IsNullOrWhiteSpace(nombre))
+        return BadRequest("Nombre requerido");
+    
+    var query = new BuscarPersonasPorNombreQuery { Nombre = nombre };
+    var resultado = await _mediator.Send(query);
+    return Ok(resultado);
+}
+
+
+10.3 AGREGAR VALIDACIONES PERSONALIZADAS
+-----------------------------------------
+
+📁 Personas.Application\Validators\CrearPersonaCommandValidator.cs
+
+public class CrearPersonaCommandValidator : AbstractValidator<CrearPersonaCommand>
+{
+    private readonly IPersonaRepository _repository;
+    
+    public CrearPersonaCommandValidator(IPersonaRepository repository)
+    {
+        _repository = repository;
+        
+        RuleFor(x => x.NumeroDocumento)
+            .NotEmpty()
+            .MustAsync(DocumentoUnico)
+            .WithMessage("El documento ya existe");
+    }
+    
+    private async Task<bool> DocumentoUnico(
+        CrearPersonaCommand command, 
+        string numeroDocumento, 
+        CancellationToken cancellationToken)
+    {
+        var existe = _repository.ExisteDocumento(
+            command.TipoDocumento, 
+            numeroDocumento);
+        return !existe;
+    }
+}
+
+
+10.4 AGREGAR MAPEOS DE AUTOMAPPER
+----------------------------------
+
+📁 Personas.Application\Mappings\MappingProfile.cs
+
+public class MappingProfile : Profile
+{
+    public MappingProfile()
+    {
+        // Entity → DTO
+        CreateMap<Persona, PersonaDto>()
+            .ForMember(dest => dest.TipoDocumento, 
+                      opt => opt.MapFrom(src => src.Documento.TipoDocumento.ToString()))
+            .ForMember(dest => dest.NumeroDocumento, 
+                      opt => opt.MapFrom(src => src.Documento.Numero));
+        
+        // Command → Entity
+        CreateMap<CrearPersonaCommand, Persona>()
+            .ConstructUsing(src => new Persona(
+                src.Nombre,
+                src.Apellido,
+                new Documento(src.TipoDocumento, src.NumeroDocumento),
+                src.TipoPersona
+            ));
+    }
+}
+
+
+10.5 WORKFLOW DE DESARROLLO
+----------------------------
+
+1. CREAR RAMA DE FEATURE
+git checkout -b feature/nueva-funcionalidad
+
+2. DESARROLLO
+- Escribir pruebas primero (TDD)
+- Implementar funcionalidad
+- Asegurar que todas las pruebas pasen
+
+3. COMMIT FRECUENTES
+git add .
+git commit -m "feat: agregar endpoint de búsqueda"
+
+4. PUSH A REPOSITORIO
+git push origin feature/nueva-funcionalidad
+
+5. PULL REQUEST
+- Crear PR en GitHub
+- Code review
+- Merge a rama main/master
+
+6. DEPLOYMENT
+- CI/CD automático o manual
+
+
+================================================================================
+11. GUÍA DE DESPLIEGUE
+================================================================================
+
+11.1 DESPLIEGUE EN IIS (Internet Information Services)
+-------------------------------------------------------
+
+PREPARACIÓN:
+
+PASO 1: Publicar desde Visual Studio
+1. Clic derecho en proyecto Personas.API
+2. Seleccionar "Publish"
+3. Elegir "Folder" como target
+4. Configurar path: C:\inetpub\wwwroot\PersonasAPI
+5. Click "Publish"
+6. Repetir para Citas.API y Recetas.API
+
+PASO 2: Instalar IIS
+1. Panel de Control → Programas → Activar características de Windows
+2. Marcar:
+   - Internet Information Services
+   - IIS Management Console
+   - World Wide Web Services
+   - ASP.NET 4.8
+3. Reiniciar si es necesario
+
+PASO 3: Instalar ASP.NET Core Hosting Bundle (si se usa .NET Core)
+Descargar de: https://dotnet.microsoft.com/download/dotnet
+
+PASO 4: Crear Aplicaciones en IIS
+1. Abrir IIS Manager (inetmgr)
+2. Expandir servidor → Sites → Default Web Site
+3. Clic derecho → Add Application
+   - Alias: PersonasAPI
+   - Physical path: C:\inetpub\wwwroot\PersonasAPI
+   - Application pool: Crear nuevo "PersonasAPI_Pool"
+4. Configurar Application Pool:
+   - .NET CLR Version: v4.0
+   - Managed Pipeline Mode: Integrated
+   - Identity: ApplicationPoolIdentity
+5. Repetir para CitasAPI y RecetasAPI
+
+PASO 5: Configurar Bindings
+1. Seleccionar "PersonasAPI"
+2. Actions → Bindings → Add
+   - Type: https
+   - Port: 443
+   - SSL Certificate: Seleccionar o crear uno
+3. Repetir para otros microservicios (puertos 444, 445)
+
+PASO 6: Configurar Permisos
+1. Navegar a C:\inetpub\wwwroot\PersonasAPI
+2. Clic derecho → Properties → Security
+3. Agregar "IIS AppPool\PersonasAPI_Pool" con permisos de lectura
+
+PASO 7: Configurar Connection Strings
+Editar Web.config de cada aplicación con connection strings de producción:
+<connectionStrings>
+  <add name="PersonasDB" 
+       connectionString="Server=PROD_SERVER;Database=PersonasDB;User Id=api_user;Password=***;" 
+       providerName="System.Data.SqlClient" />
+</connectionStrings>
+
+PASO 8: Verificar Despliegue
+Navegar a:
+- https://localhost/PersonasAPI/swagger
+- https://localhost/CitasAPI/swagger
+- https://localhost/RecetasAPI/swagger
+
+
+11.2 DESPLIEGUE EN AZURE APP SERVICE
+-------------------------------------
+
+PREPARACIÓN:
+
+PASO 1: Crear Azure SQL Databases
+1. Portal de Azure → Create Resource → SQL Database
+2. Crear 3 bases de datos:
+   - PersonasDB
+   - CitasDB
+   - RecetasDB
+3. Configurar firewall para permitir servicios de Azure
+4. Copiar connection strings
+
+PASO 2: Crear App Services
+1. Portal de Azure → Create Resource → Web App
+2. Crear 3 App Services:
+   - personas-api
+   - citas-api
+   - recetas-api
+3. Configuración:
+   - Runtime: .NET Framework 4.8
+   - Region: Seleccionar región cercana
+   - Plan: B1 o superior
+
+PASO 3: Configurar Connection Strings en App Service
+1. Ir a App Service → Configuration → Connection Strings
+2. Agregar:
+   Name: PersonasDB
+   Value: [Connection string de Azure SQL]
+   Type: SQLAzure
+
+PASO 4: Configurar Application Settings
+1. Ir a Configuration → Application Settings
+2. Agregar:
+   JwtSettings__SecretKey: [clave segura]
+   JwtSettings__Issuer: PersonasAPI
+   JwtSettings__Audience: PersonasAPIUsers
+
+PASO 5: Publicar desde Visual Studio
+1. Clic derecho en Personas.API → Publish
+2. Target: Azure
+3. Specific target: Azure App Service (Windows)
+4. Seleccionar subscripción y App Service creado
+5. Publish
+
+PASO 6: Ejecutar Migraciones
+Opción 1: Desde Visual Studio con connection string de Azure
+PM> Update-Database -ConnectionString "[Azure Connection String]"
+
+Opción 2: Script SQL manual
+- Generar script: Update-Database -Script
+- Ejecutar en Azure SQL Database
+
+PASO 7: Configurar CORS
+En App Service → CORS → Agregar orígenes permitidos
+
+PASO 8: Configurar Custom Domain y SSL (Opcional)
+1. App Service → Custom domains
+2. Agregar dominio
+3. App Service → TLS/SSL settings
+4. Configurar certificado SSL
+
+PASO 9: Verificar Despliegue
+Navegar a:
+- https://personas-api.azurewebsites.net/swagger
+- https://citas-api.azurewebsites.net/swagger
+- https://recetas-api.azurewebsites.net/swagger
+
+
+11.3 DESPLIEGUE CON DOCKER (Opcional)
+--------------------------------------
+
+PASO 1: Crear Dockerfile para cada microservicio
+📁 Personas.API\Dockerfile
+
+FROM mcr.microsoft.com/dotnet/framework/aspnet:4.8
+WORKDIR /inetpub/wwwroot
+COPY ./publish .
+
+PASO 2: Crear docker-compose.yml
+📁 docker-compose.yml
+
+version: '3.8'
+services:
+  personas-api:
+    build: ./src/Personas/Personas.API
+    ports:
+      - "5001:80"
+    environment:
+      - ConnectionStrings__PersonasDB=Server=sqlserver;Database=PersonasDB;...
+    depends_on:
+      - sqlserver
+  
+  citas-api:
+    build: ./src/Citas/Citas.API
+    ports:
+      - "5002:80"
+    depends_on:
+      - sqlserver
+  
+  recetas-api:
+    build: ./src/Recetas/Recetas.API
+    ports:
+      - "5003:80"
+    depends_on:
+      - sqlserver
+  
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourPassword123!
+    ports:
+      - "1433:1433"
+
+PASO 3: Construir y Ejecutar
+docker-compose build
+docker-compose up -d
+
+
+11.4 CI/CD CON GITHUB ACTIONS
+------------------------------
+
+📁 .github/workflows/deploy.yml
+
+name: Deploy to Azure
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Setup .NET Framework
+      uses: microsoft/setup-msbuild@v1
+    
+    - name: Restore NuGet packages
+      run: nuget restore CitasMedicas.sln
+    
+    - name: Build solution
+      run: msbuild CitasMedicas.sln /p:Configuration=Release
+    
+    - name: Run tests
+      run: dotnet test --no-build --configuration Release
+    
+    - name: Publish Personas.API
+      run: msbuild src/Personas/Personas.API/Personas.API.csproj /p:DeployOnBuild=true /p:PublishProfile=Azure
+    
+    - name: Deploy to Azure Web App
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: 'personas-api'
+        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+        package: ./publish
+
+
+11.5 CHECKLIST DE DESPLIEGUE
+-----------------------------
+
+PRE-DESPLIEGUE:
+□ Todas las pruebas unitarias pasan
+□ Code review completado
+□ Actualizar versión en AssemblyInfo
+□ Actualizar CHANGELOG
+□ Backup de base de datos de producción
+
+CONFIGURACIÓN:
+□ Connection strings de producción configurados
+□ JWT SecretKey diferente a desarrollo
+□ CORS configurado correctamente
+□ HTTPS habilitado
+□ Logs configurados
+
+POST-DESPLIEGUE:
+□ Verificar que APIs respondan
+□ Verificar autenticación JWT
+□ Verificar conectividad a base de datos
+□ Ejecutar smoke tests
+□ Monitorear logs por errores
+□ Notificar al equipo
+
+
+11.6 ROLLBACK
+-------------
+
+Si algo sale mal:
+
+IIS:
+1. Detener application pool
+2. Restaurar carpeta de versión anterior
+3. Iniciar application pool
+
+Azure:
+1. Portal Azure → App Service → Deployment slots
+2. Swap slots (producción ↔ staging)
+
+O:
+1. Portal Azure → App Service → Deployment Center
+2. Seleccionar versión anterior
+3. Redeploy
+
+
+================================================================================
+12. PRUEBAS
+================================================================================
+
+12.1 TIPOS DE PRUEBAS
+---------------------
+
+1. PRUEBAS UNITARIAS
+   - Qué: Probar unidades individuales (métodos, clases)
+   - Herramientas: NUnit, Moq, FluentAssertions
+   - Ubicación: tests\Personas.Pruebas\
+
+2. PRUEBAS DE INTEGRACIÓN
+   - Qué: Probar interacción entre componentes
+   - Herramientas: NUnit, Base de datos en memoria
+   - Ubicación: tests\Personas.IntegrationTests\
+
+3. PRUEBAS DE API (E2E)
+   - Qué: Probar endpoints completos
+   - Herramientas: Postman, RestSharp
+   - Ubicación: tests\Api.Tests\
+
+
+12.2 ESTRUCTURA DE PRUEBAS UNITARIAS
+-------------------------------------
+
+EJEMPLO:
+📁 tests\Personas.Pruebas\aplicacion\commandhandlers\CrearPersonaCommandHandlerTests.cs
+
+[TestFixture]
+public class CrearPersonaCommandHandlerTests
+{
+    private Mock<IPersonaRepository> _mockRepository;
+    private CrearPersonaCommandHandler _handler;
+    
+    [SetUp]
+    public void Setup()
+    {
+        _mockRepository = new Mock<IPersonaRepository>();
+        _handler = new CrearPersonaCommandHandler(_mockRepository.Object);
+    }
+    
+    [Test]
+    public async Task Handle_ConDatosValidos_DeberiaCrearPersona()
+    {
+        // Arrange
+        var command = new CrearPersonaCommand
+        {
+            Nombre = "Juan",
+            Apellido = "Perez",
+            TipoDocumento = TipoDocumento.Cedula,
+            NumeroDocumento = "12345678",
+            TipoPersona = TipoPersona.Medico
+        };
+        
+        Persona personaCapturada = null;
+        _mockRepository
+            .Setup(x => x.Crear(It.IsAny<Persona>()))
+            .Callback<Persona>(p => personaCapturada = p);
+        
+        // Act
+        var resultado = await _handler.Handle(command, CancellationToken.None);
+        
+        // Assert
+        resultado.Should().BeGreaterOrEqualTo(0);
+        _mockRepository.Verify(x => x.Crear(It.IsAny<Persona>()), Times.Once);
+        personaCapturada.Should().NotBeNull();
+        personaCapturada.Nombre.Should().Be("Juan");
+        personaCapturada.Apellido.Should().Be("Perez");
+    }
+    
+    [Test]
+    public void Handle_ConNombreVacio_DeberiaLanzarException()
+    {
+        // Arrange
+        var command = new CrearPersonaCommand
+        {
+            Nombre = "",
+            Apellido = "Perez",
+            TipoDocumento = TipoDocumento.Cedula,
+            NumeroDocumento = "12345678",
+            TipoPersona = TipoPersona.Medico
+        };
+        
+        // Act
+        Func<Task> action = async () => await _handler.Handle(command, CancellationToken.None);
+        
+        // Assert
+        action.Should().ThrowAsync<ArgumentException>()
+            .WithMessage("*nombre*");
+    }
+}
+
+
+12.3 EJECUTAR PRUEBAS
+---------------------
+
+VISUAL STUDIO:
+1. Menu Test → Test Explorer
+2. Click "Run All"
+3. Ver resultados (verde = pass, rojo = fail)
+
+LÍNEA DE COMANDOS:
+dotnet test C:\Proyectos\CitasMedicas\tests\Personas.Pruebas\Personas.Pruebas.csproj
+
+CON COBERTURA:
+dotnet test --collect:"Code Coverage"
+
+
+12.4 COBERTURA DE CÓDIGO
+-------------------------
+
+OBJETIVO: Mínimo 80% de cobertura
+
+HERRAMIENTAS:
+- Visual Studio Enterprise: Análisis integrado
+- Coverlet: dotnet tool install --global coverlet.console
+- ReportGenerator: Para visualización
+
+COMANDO:
+dotnet test /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
+
+
+12.5 COLECCIÓN DE POSTMAN
+--------------------------
+
+Crear colección de pruebas:
+📁 docs\postman\CitasMedicas.postman_collection.json
+
+{
+  "info": {
+    "name": "CitasMedicas API Tests"
+  },
+  "item": [
+    {
+      "name": "Autenticación",
+      "item": [
+        {
+          "name": "Login Médico",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/usuarios/autenticar",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombreUsuario\": \"medico1\",\n  \"password\": \"1234\"\n}"
+            }
+          },
+          "tests": [
+            "pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+            "pm.test('Token exists', function() { pm.expect(pm.response.json().token).to.exist; });"
+          ]
+        }
+      ]
+    }
+  ]
+}
+
+
+================================================================================
+13. API ENDPOINTS
+================================================================================
+
+13.1 PERSONAS API (Puerto 5001)
+--------------------------------
+
+BASE URL: https://localhost:5001/api
+
+AUTENTICACIÓN:
+
+POST /usuarios/autenticar
+Request:
+{
+  "nombreUsuario": "medico1",
+  "password": "1234"
+}
+Response:
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "nombreUsuario": "medico1",
+  "personaId": 1,
+  "nombre": "Juan",
+  "apellido": "Perez",
+  "tipoPersona": "Medico"
+}
+
+PERSONAS:
+
+GET /personas
+Headers: Authorization: Bearer {token}
+Response: Array de PersonaDto
+
+POST /personas
+Headers: Authorization: Bearer {token}
+Request:
+{
+  "nombre": "Juan",
+  "apellido": "Perez",
+  "tipoDocumento": 1,
+  "numeroDocumento": "12345678",
+  "tipoPersona": 1
+}
+Response: ID de persona creada
+
+GET /personas/{id}
+Headers: Authorization: Bearer {token}
+Response: PersonaDto
+
+PUT /personas/{id}
+Headers: Authorization: Bearer {token}
+Request:
+{
+  "id": 1,
+  "nombre": "Juan Actualizado",
+  "apellido": "Perez",
+  "tipoDocumento": 1,
+  "numeroDocumento": "12345678"
+}
+Response: 204 No Content
+
+DELETE /personas/{id}
+Headers: Authorization: Bearer {token}
+Response: 204 No Content
+
+
+13.2 CITAS API (Puerto 5002)
+-----------------------------
+
+BASE URL: https://localhost:5002/api
+
+POST /citas
+Headers: Authorization: Bearer {token}
+Request:
+{
+  "medicoId": 1,
+  "pacienteId": 2,
+  "fechaHora": "2026-03-15T10:00:00",
+  "motivo": "Consulta general",
+  "observaciones": ""
+}
+Response: ID de cita creada
+
+GET /citas
+Headers: Authorization: Bearer {token}
+Response: Array de CitaDto
+
+GET /citas/{id}
+Headers: Authorization: Bearer {token}
+Response: CitaDto
+
+PUT /citas/{id}
+Headers: Authorization: Bearer {token}
+Request: CitaDto actualizado
+Response: 204 No Content
+
+DELETE /citas/{id}
+Headers: Authorization: Bearer {token}
+Response: 204 No Content
+
+GET /citas/medico/{medicoId}
+Headers: Authorization: Bearer {token}
+Response: Array de citas del médico
+
+GET /citas/paciente/{pacienteId}
+Headers: Authorization: Bearer {token}
+Response: Array de citas del paciente
+
+
+13.3 RECETAS API (Puerto 5003)
+-------------------------------
+
+BASE URL: https://localhost:5003/api
+
+POST /recetas
+Headers: Authorization: Bearer {token}, Role: Medico
+Request:
+{
+  "citaId": 1,
+  "medicoId": 1,
+  "pacienteId": 2,
+  "diagnostico": "Gripe común",
+  "indicaciones": "Reposo y mucha agua",
+  "medicamentos": [
+    {
+      "nombre": "Paracetamol",
+      "dosis": "500mg",
+      "frecuencia": "Cada 8 horas",
+      "duracion": "5 dias"
+    }
+  ]
+}
+Response: ID de receta creada
+
+GET /recetas
+Headers: Authorization: Bearer {token}
+Response: Array de RecetaDto
+
+GET /recetas/{id}
+Headers: Authorization: Bearer {token}
+Response: RecetaDto
+
+GET /recetas/paciente/{pacienteId}
+Headers: Authorization: Bearer {token}
+Response: Array de recetas del paciente
+
+GET /recetas/medico/{medicoId}
+Headers: Authorization: Bearer {token}
+Response: Array de recetas del médico
+
+
+13.4 CÓDIGOS DE RESPUESTA HTTP
+-------------------------------
+
+200 OK: Operación exitosa
+201 Created: Recurso creado exitosamente
+204 No Content: Operación exitosa sin contenido de respuesta
+400 Bad Request: Datos de entrada inválidos
+401 Unauthorized: No autenticado o token inválido
+403 Forbidden: No tiene permisos para esta operación
+404 Not Found: Recurso no encontrado
+500 Internal Server Error: Error del servidor
+
+
+================================================================================
+14. CONFIGURACIÓN
+================================================================================
+
+14.1 ARCHIVOS DE CONFIGURACIÓN
+-------------------------------
+
+WEB.CONFIG (Principal):
+📁 Personas.API\Web.config
+
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <configSections>
+    <section name="entityFramework" 
+             type="System.Data.Entity.Internal.ConfigFile.EntityFrameworkSection, EntityFramework" />
+  </configSections>
+  
+  <connectionStrings>
+    <add name="PersonasDB" 
+         connectionString="Server=localhost;Database=PersonasDB;Integrated Security=true;" 
+         providerName="System.Data.SqlClient" />
+  </connectionStrings>
+  
+  <appSettings>
+    <!-- JWT Configuration -->
+    <add key="JwtSettings:SecretKey" 
+         value="clave-secreta-super-segura-de-al-menos-32-caracteres" />
+    <add key="JwtSettings:Issuer" value="PersonasAPI" />
+    <add key="JwtSettings:Audience" value="PersonasAPIUsers" />
+    <add key="JwtSettings:ExpirationHours" value="24" />
+    
+    <!-- Logging -->
+    <add key="LogLevel" value="Information" />
+  </appSettings>
+  
+  <system.web>
+    <compilation debug="true" targetFramework="4.8" />
+    <httpRuntime targetFramework="4.8" />
+  </system.web>
+  
+  <system.webServer>
+    <handlers>
+      <remove name="ExtensionlessUrlHandler-Integrated-4.0" />
+      <add name="ExtensionlessUrlHandler-Integrated-4.0" 
+           path="*." 
+           verb="*" 
+           type="System.Web.Handlers.TransferRequestHandler" 
+           preCondition="integratedMode,runtimeVersionv4.0" />
+    </handlers>
+  </system.webServer>
+  
+  <entityFramework>
+    <providers>
+      <provider invariantName="System.Data.SqlClient" 
+                type="System.Data.Entity.SqlServer.SqlProviderServices, EntityFramework.SqlServer" />
+    </providers>
+  </entityFramework>
+</configuration>
+
+
+WEB.CONFIG TRANSFORMS (Por Ambiente):
+📁 Personas.API\Web.Debug.config
+📁 Personas.API\Web.Release.config
+
+<?xml version="1.0" encoding="utf-8"?>
+<configuration xmlns:xdt="http://schemas.microsoft.com/XML-Document-Transform">
+  <connectionStrings>
+    <add name="PersonasDB" 
+         connectionString="Server=PROD_SERVER;Database=PersonasDB;User Id=api_user;Password=***;" 
+         xdt:Transform="SetAttributes" 
+         xdt:Locator="Match(name)" />
+  </connectionStrings>
+  
+  <appSettings>
+    <add key="JwtSettings:SecretKey" 
+         value="clave-super-segura-diferente-para-produccion" 
+         xdt:Transform="SetAttributes" 
+         xdt:Locator="Match(key)" />
+  </appSettings>
+  
+  <system.web>
+    <compilation debug="false" 
+                 xdt:Transform="SetAttributes(debug)" />
+  </system.web>
+</configuration>
+
+
+LAUNCHSETTINGS.JSON:
+📁 Personas.API\Properties\launchSettings.json
+
+{
+  "profiles": {
+    "Personas.API": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:5001;http://localhost:5000"
+    },
+    "IIS Express": {
+      "commandName": "IISExpress",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
+
+
+14.2 CONFIGURACIÓN POR AMBIENTE
+--------------------------------
+
+DESARROLLO (Development):
+- Connection String: localhost con Integrated Security
+- JWT Secret: Clave de desarrollo (no crítica)
+- Log Level: Debug o Information
+- HTTPS: Certificado de desarrollo
+- CORS: Permitir todos los orígenes
+
+STAGING (Pre-producción):
+- Connection String: Servidor de staging
+- JWT Secret: Clave segura diferente
+- Log Level: Information
+- HTTPS: Certificado válido
+- CORS: Dominios específicos de staging
+
+PRODUCCIÓN (Production):
+- Connection String: Servidor de producción (con credenciales)
+- JWT Secret: Clave robusta única
+- Log Level: Warning o Error
+- HTTPS: Certificado SSL válido
+- CORS: Solo dominios de producción
+- Caching habilitado
+- Compression habilitado
+
+
+14.3 VARIABLES DE ENTORNO
+--------------------------
+
+Para no exponer secretos en código:
+
+WINDOWS:
+setx ConnectionStrings__PersonasDB "Server=...;Database=PersonasDB;..."
+setx JwtSettings__SecretKey "mi-clave-super-secreta"
+
+AZURE APP SERVICE:
+Portal → App Service → Configuration → Application Settings
+Agregar:
+- Key: ConnectionStrings__PersonasDB
+- Value: [connection string]
+
+DOCKER:
+docker run -e ConnectionStrings__PersonasDB="Server=..." personas-api
+
+
+14.4 CONFIGURACIÓN DE CORS
+---------------------------
+
+📁 Personas.API\App_Start\WebApiConfig.cs
+
+public static void Register(HttpConfiguration config)
+{
+    // DESARROLLO: Permitir todos
+    var cors = new EnableCorsAttribute("*", "*", "*");
+    
+    // PRODUCCIÓN: Restringir
+    // var cors = new EnableCorsAttribute(
+    //     origins: "https://mi-app.com,https://admin.mi-app.com",
+    //     headers: "Authorization,Content-Type",
+    //     methods: "GET,POST,PUT,DELETE"
+    // );
+    
+    config.EnableCors(cors);
+    
+    // Otras configuraciones...
+}
+
+
+14.5 CONFIGURACIÓN DE LOGGING
+------------------------------
+
+📁 Web.config
+
+<system.diagnostics>
+  <sources>
+    <source name="System.ServiceModel" 
+            switchValue="Information, ActivityTracing" 
+            propagateActivity="true">
+      <listeners>
+        <add name="traceListener" 
+             type="System.Diagnostics.XmlWriterTraceListener" 
+             initializeData="C:\logs\PersonasAPI.svclog" />
+      </listeners>
+    </source>
+  </sources>
+</system.diagnostics>
+
+O usar una librería como NLog o Serilog:
+
+📁 NLog.config
+
+<?xml version="1.0" encoding="utf-8" ?>
+<nlog xmlns="http://www.nlog-project.org/schemas/NLog.xsd">
+  <targets>
+    <target name="logfile" 
+            xsi:type="File" 
+            fileName="C:\logs\PersonasAPI\${shortdate}.log" />
+    <target name="logconsole" 
+            xsi:type="Console" />
+  </targets>
+  
+  <rules>
+    <logger name="*" minlevel="Info" writeTo="logconsole" />
+    <logger name="*" minlevel="Warn" writeTo="logfile" />
+  </rules>
+</nlog>
+
+
+================================================================================
+15. MEJORES PRÁCTICAS
+================================================================================
+
+15.1 CÓDIGO LIMPIO
+------------------
+
+1. NOMBRES DESCRIPTIVOS
+   ✓ CrearPersonaCommand (claro)
+   ✗ CreateCmd (ambiguo)
+
+2. MÉTODOS PEQUEÑOS
+   ✓ Cada método hace UNA cosa
+   ✗ Métodos de 100+ líneas
+
+3. PRINCIPIO DRY (Don't Repeat Yourself)
+   ✓ Extraer código duplicado a métodos
+   ✗ Copy-paste de código
+
+4. COMENTARIOS ÚTILES
+   ✓ Documentar el "por qué", no el "qué"
+   ✓ XML comments en APIs públicas
+   ✗ Comentarios obvios
+
+5. MANEJO DE ERRORES
+   ✓ Try-catch específico donde es necesario
+   ✓ Logging de excepciones
+   ✗ Try-catch vacíos
+   ✗ Swallowing exceptions
+
+
+15.2 PRINCIPIOS SOLID
+---------------------
+
+S - SINGLE RESPONSIBILITY PRINCIPLE
+Cada clase tiene una sola razón para cambiar
+✓ PersonaRepository solo maneja persistencia de Persona
+✗ PersonaRepository que también envía emails
+
+O - OPEN/CLOSED PRINCIPLE
+Abierto para extensión, cerrado para modificación
+✓ Usar interfaces e inyección de dependencias
+✗ Modificar código existente para agregar funcionalidad
+
+L - LISKOV SUBSTITUTION PRINCIPLE
+Subtipos deben ser sustituibles por sus tipos base
+✓ IPersonaRepository puede ser PersonaRepository o MockRepository
+✗ Implementación que rompe el contrato
+
+I - INTERFACE SEGREGATION PRINCIPLE
+No forzar a implementar métodos que no se usan
+✓ Interfaces pequeñas y específicas
+✗ Interface enorme con muchos métodos
+
+D - DEPENDENCY INVERSION PRINCIPLE
+Depender de abstracciones, no de implementaciones
+✓ Constructor recibe IPersonaRepository
+✗ Constructor crea new PersonaRepository()
+
+
+15.3 SEGURIDAD
+--------------
+
+1. NUNCA EXPONER INFORMACIÓN SENSIBLE
+   ✗ Passwords en logs
+   ✗ Mensajes de error detallados al cliente
+   ✗ Stack traces en producción
+
+2. VALIDAR SIEMPRE ENTRADA DEL USUARIO
+   ✓ FluentValidation en Commands
+   ✓ [Required], [MaxLength] en modelos
+   ✗ Confiar ciegamente en input
+
+3. USAR HTTPS EN PRODUCCIÓN
+   ✓ Certificado SSL válido
+   ✓ Redirect HTTP → HTTPS
+   ✗ HTTP en producción
+
+4. PRINCIPIO DE MÍNIMO PRIVILEGIO
+   ✓ Usuario de BD con permisos mínimos necesarios
+   ✗ Usuario SA para aplicación
+
+5. ACTUALIZAR DEPENDENCIAS REGULARMENTE
+   ✓ Revisar vulnerabilidades conocidas
+   ✓ Actualizar paquetes NuGet
+   ✗ Usar versiones antiguas con vulnerabilidades
+
+
+15.4 PERFORMANCE
+----------------
+
+1. QUERIES EFICIENTES
+   ✓ Usar Include() para eager loading
+   ✓ Índices en columnas frecuentemente consultadas
+   ✗ N+1 queries
+
+2. ASYNC/AWAIT
+   ✓ Operaciones I/O asíncronas
+   ✓ async Task<T> para métodos async
+   ✗ .Result o .Wait() (bloquean thread)
+
+3. CACHING
+   ✓ Cache datos que no cambian frecuentemente
+   ✓ MemoryCache para datos en memoria
+   ✗ Consultar BD repetidamente por mismos datos
+
+4. PAGINACIÓN
+   ✓ Skip().Take() para grandes resultados
+   ✗ Devolver miles de registros sin paginar
+
+5. COMPRESSION
+   ✓ Habilitar Gzip en respuestas
+   ✓ Reducir tamaño de payloads
+
+
+15.5 TESTING
+------------
+
+1. AAA PATTERN (Arrange-Act-Assert)
+   Arrange: Preparar datos y mocks
+   Act: Ejecutar método bajo prueba
+   Assert: Verificar resultado
+
+2. NOMBRES DESCRIPTIVOS
+   ✓ Handle_ConDatosValidos_DeberiaCrearPersona
+   ✗ Test1
+
+3. PRUEBA UNA COSA A LA VEZ
+   ✓ Test enfocado en un comportamiento
+   ✗ Test gigante que prueba todo
+
+4. INDEPENDENCIA
+   ✓ Tests no dependen del orden de ejecución
+   ✗ Tests que fallan si se ejecutan en diferente orden
+
+5. COBERTURA
+   ✓ Mínimo 80% de cobertura
+   ✓ Probar casos felices Y casos de error
+   ✗ Solo probar casos exitosos
+
+
+15.6 VERSIONADO
+---------------
+
+SEMANTIC VERSIONING (SemVer):
+MAJOR.MINOR.PATCH
+
+Ejemplo: 1.4.2
+- MAJOR (1): Cambios incompatibles en API
+- MINOR (4): Nueva funcionalidad compatible
+- PATCH (2): Bug fixes
+
+COMMITS:
+Usar Conventional Commits:
+- feat: Nueva funcionalidad
+- fix: Corrección de bug
+- docs: Solo cambios en documentación
+- refactor: Refactorización sin cambios funcionales
+- test: Agregar o modificar tests
+
+Ejemplos:
+git commit -m "feat: agregar endpoint de búsqueda de personas"
+git commit -m "fix: corregir validación de documento duplicado"
+git commit -m "docs: actualizar README con instrucciones de despliegue"
+
+
+================================================================================
+16. TROUBLESHOOTING
+================================================================================
+
+PROBLEMA: "Cannot connect to SQL Server"
+SOLUCIÓN:
+1. Verificar que SQL Server esté ejecutándose
+   - Abrir "Services" (services.msc)
+   - Buscar "SQL Server (MSSQLSERVER)" o similar
+   - Estado debe ser "Running"
+2. Verificar connection string en Web.config
+3. Verificar firewall de Windows
+4. Ping al servidor: ping localhost
+
+PROBLEMA: "JWT token validation failed"
+SOLUCIÓN:
+1. Verificar que JwtSettings:SecretKey sea la MISMA en todos los microservicios
+2. Verificar que el token no haya expirado (check exp claim)
+3. Verificar formato del header: "Bearer [token]" (con espacio)
+4. Verificar que Issuer y Audience coincidan
+
+PROBLEMA: "Entity Framework migration failed"
+SOLUCIÓN:
+1. Verificar que connection string sea correcta
+2. Verificar permisos del usuario de BD
+3. Limpiar carpeta Migrations y recrear desde cero:
+   PM> Remove-Migration (repetir hasta eliminar todas)
+   PM> Add-Migration Initial
+   PM> Update-Database
+4. Si hay datos, hacer backup primero
+
+PROBLEMA: "CORS error en frontend"
+SOLUCIÓN:
+1. Verificar configuración de CORS en WebApiConfig.cs
+2. Verificar que se incluya header Origin en request
+3. En desarrollo, permitir todos los orígenes temporalmente:
+   var cors = new EnableCorsAttribute("*", "*", "*");
+4. Verificar que no haya conflictos con otros middleware
+
+PROBLEMA: "Port already in use"
+SOLUCIÓN:
+1. Verificar qué proceso usa el puerto:
+   netstat -ano | findstr :5001
+2. Terminar proceso:
+   taskkill /PID [PID] /F
+3. O cambiar puerto en launchSettings.json
+
+PROBLEMA: "Could not load file or assembly..."
+SOLUCIÓN:
+1. Limpiar solución: Build → Clean Solution
+2. Cerrar Visual Studio
+3. Eliminar carpetas bin/ y obj/ de todos los proyectos
+4. Restaurar paquetes: nuget restore
+5. Rebuild Solution
+
+PROBLEMA: "Swagger no muestra endpoints"
+SOLUCIÓN:
+1. Verificar configuración en SwaggerConfig.cs
+2. Verificar que controllers estén en namespace correcto
+3. Verificar que [Route] esté definido
+4. Rebuild proyecto
+
+PROBLEMA: "Tests no se descubren en Test Explorer"
+SOLUCIÓN:
+1. Verificar que NUnit3TestAdapter esté instalado
+2. Rebuild proyecto de tests
+3. Cerrar y reabrir Test Explorer
+4. Limpiar cache de tests:
+   Herramientas → Opciones → Test → Limpiar caché
+
+PROBLEMA: "High CPU usage in production"
+SOLUCIÓN:
+1. Revisar logs para queries lentas
+2. Usar profiler de SQL Server
+3. Agregar índices faltantes
+4. Implementar caching
+5. Optimizar queries N+1
+
+PROBLEMA: "Memory leak"
+SOLUCIÓN:
+1. Verificar que DbContext se esté disposing correctamente
+2. Verificar event handlers (pueden mantener referencias)
+3. Usar Memory Profiler
+4. Implementar IDisposable correctamente
+
+
+================================================================================
+17. MANTENIMIENTO
+================================================================================
+
+17.1 TAREAS REGULARES
+----------------------
+
+DIARIAS:
+□ Monitorear logs de errores
+□ Verificar disponibilidad de servicios
+□ Revisar métricas de performance
+
+SEMANALES:
+□ Revisar pull requests pendientes
+□ Actualizar dependencias con vulnerabilidades críticas
+□ Backup de bases de datos
+□ Revisar uso de recursos (CPU, memoria, disco)
+
+MENSUALES:
+□ Actualizar paquetes NuGet
+□ Revisar y optimizar queries lentas
+□ Limpiar logs antiguos
+□ Revisar cobertura de tests
+□ Auditoría de seguridad
+
+TRIMESTRALES:
+□ Revisar architecture decision records
+□ Refactorización de código legacy
+□ Actualizar documentación
+□ Planificación de mejoras técnicas
+
+
+17.2 MONITOREO
+--------------
+
+MÉTRICAS CLAVE:
+- Response Time (tiempo de respuesta)
+- Throughput (requests por segundo)
+- Error Rate (% de errores)
+- Availability (uptime %)
+- CPU Usage
+- Memory Usage
+- Database Connection Pool
+
+HERRAMIENTAS:
+- Application Insights (Azure)
+- New Relic
+- Datadog
+- ELK Stack (Elasticsearch, Logstash, Kibana)
+- Grafana + Prometheus
+
+
+17.3 BACKUP Y RECUPERACIÓN
+---------------------------
+
+BACKUP DE BASE DE DATOS:
+-- Backup completo (diario)
+BACKUP DATABASE PersonasDB
+TO DISK = 'C:\Backups\PersonasDB_Full_20260311.bak'
+WITH FORMAT, COMPRESSION;
+
+-- Backup diferencial (cada 6 horas)
+BACKUP DATABASE PersonasDB
+TO DISK = 'C:\Backups\PersonasDB_Diff_20260311_1200.bak'
+WITH DIFFERENTIAL, COMPRESSION;
+
+-- Backup de log (cada hora)
+BACKUP LOG PersonasDB
+TO DISK = 'C:\Backups\PersonasDB_Log_20260311_1200.trn';
+
+AUTOMATIZACIÓN:
+Crear SQL Server Agent Job para backups automáticos
+
+RESTORE:
+RESTORE DATABASE PersonasDB
+FROM DISK = 'C:\Backups\PersonasDB_Full_20260311.bak'
+WITH REPLACE, RECOVERY;
+
+
+17.4 ACTUALIZACIÓN DE DEPENDENCIAS
+-----------------------------------
+
+REVISAR VULNERABILIDADES:
+1. Visual Studio → Analyze → Check for Package Vulnerabilities
+
+ACTUALIZAR PAQUETE ESPECÍFICO:
+PM> Update-Package Newtonsoft.Json -ProjectName Personas.API
+
+ACTUALIZAR TODOS LOS PAQUETES:
+PM> Update-Package -ProjectName Personas.API
+
+PROBAR DESPUÉS DE ACTUALIZAR:
+1. Ejecutar todas las pruebas unitarias
+2. Smoke tests en ambiente de staging
+3. Revisar breaking changes en release notes
+
+
+================================================================================
+18. ROADMAP
+================================================================================
+
+18.1 FUNCIONALIDADES FUTURAS
+-----------------------------
+
+CORTO PLAZO (1-3 meses):
+□ Implementar Refresh Tokens
+□ Agregar paginación a endpoints
+□ Implementar filtros y búsqueda avanzada
+□ Health checks en cada microservicio
+□ Logging estructurado con Serilog
+□ Implementar Cache con Redis
+
+MEDIANO PLAZO (3-6 meses):
+□ API Gateway (Ocelot)
+□ Service Discovery (Consul)
+□ Circuit Breaker (Polly)
+□ Mensajería asíncrona (RabbitMQ o Azure Service Bus)
+□ Implementar CQRS completo con Event Sourcing
+□ Migrar a .NET 8
+
+LARGO PLAZO (6-12 meses):
+□ Microservicio de Notificaciones (Email, SMS)
+□ Microservicio de Reportes
+□ Microservicio de Facturación
+□ Frontend SPA (React o Angular)
+□ Mobile App (Xamarin o MAUI)
+□ Kubernetes para orquestación
+
+
+18.2 MEJORAS TÉCNICAS
+---------------------
+
+□ Implementar Domain Events
+□ Agregar pruebas de carga (JMeter, k6)
+□ Implementar Rate Limiting
+□ Agregar OpenTelemetry para observabilidad
+□ Implementar Saga Pattern para transacciones distribuidas
+□ Containerización completa con Docker
+□ CI/CD pipeline completo
+
+
+18.3 MIGRACIÓN A .NET 8
+-----------------------
+
+BENEFICIOS:
+- Performance mejorado
+- Minimal APIs
+- Native AOT
+- Mejor soporte para contenedores
+- Long Term Support (LTS)
+
+PASOS:
+1. Actualizar SDK y runtime
+2. Migrar proyectos a .csproj estilo SDK
+3. Actualizar paquetes NuGet a versiones compatibles
+4. Reemplazar Web API Framework por ASP.NET Core
+5. Actualizar Entity Framework 6 a Entity Framework Core 8
+6. Probar exhaustivamente
+7. Desplegar gradualmente
+
+
+================================================================================
+APÉNDICES
+================================================================================
+
+APÉNDICE A: GLOSARIO
+---------------------
+
+API: Application Programming Interface
+CQRS: Command Query Responsibility Segregation
+DDD: Domain-Driven Design
+DTO: Data Transfer Object
+IoC: Inversion of Control
+JWT: JSON Web Token
+ORM: Object-Relational Mapping
+REST: Representational State Transfer
+SPA: Single Page Application
+TDD: Test-Driven Development
+
+
+APÉNDICE B: RECURSOS ADICIONALES
+---------------------------------
+
+DOCUMENTACIÓN OFICIAL:
+- .NET Framework: https://docs.microsoft.com/en-us/dotnet/framework/
+- ASP.NET Web API: https://docs.microsoft.com/en-us/aspnet/web-api/
+- Entity Framework: https://docs.microsoft.com/en-us/ef/
+- JWT: https://jwt.io/
+
+LIBROS RECOMENDADOS:
+- "Clean Architecture" - Robert C. Martin
+- "Domain-Driven Design" - Eric Evans
+- "Microservices Patterns" - Chris Richardson
+- "Building Microservices" - Sam Newman
+
+BLOGS Y SITIOS:
+- Martin Fowler: https://martinfowler.com/
+- Microsoft Docs: https://docs.microsoft.com/
+- Stack Overflow: https://stackoverflow.com/
+
+
+APÉNDICE C: CONTACTOS
+---------------------
+
+Repositorio: https://github.com/JEFFRYLR/PruebaMicroservicios
+Issues: https://github.com/JEFFRYLR/PruebaMicroservicios/issues
+
+
+================================================================================
+FIN DE LA DOCUMENTACIÓN
+================================================================================
+
+================================================================================
