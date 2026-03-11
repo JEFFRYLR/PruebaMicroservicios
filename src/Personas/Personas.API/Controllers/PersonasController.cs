@@ -12,7 +12,9 @@ namespace Personas.API.Controllers
 {
     /// <summary>
     /// API Controller para Personas (Médicos y Pacientes) usando CQRS + MediatR
+    /// ✅ PROTEGIDO CON JWT - Requiere autenticación en todos los endpoints
     /// </summary>
+    [Authorize]  
     [RoutePrefix("api/personas")]
     public class PersonasController : ApiController
     {
@@ -28,6 +30,7 @@ namespace Personas.API.Controllers
         /// </summary>
         [HttpGet]
         [Route("")]
+        [AllowAnonymous]  // ← Permitir acceso público a este endpoint
         public async Task<IHttpActionResult> ObtenerTodas()
         {
             try
@@ -44,6 +47,7 @@ namespace Personas.API.Controllers
 
         /// <summary>
         /// Obtiene una persona por su ID
+        /// ✅ Requiere autenticación
         /// </summary>
         [HttpGet]
         [Route("{id:int}")]
@@ -67,6 +71,7 @@ namespace Personas.API.Controllers
 
         /// <summary>
         /// Obtiene todos los médicos
+        /// ✅ Requiere autenticación
         /// </summary>
         [HttpGet]
         [Route("medicos")]
@@ -86,6 +91,7 @@ namespace Personas.API.Controllers
 
         /// <summary>
         /// Obtiene todos los pacientes
+        /// ✅ Requiere autenticación
         /// </summary>
         [HttpGet]
         [Route("pacientes")]
@@ -105,9 +111,11 @@ namespace Personas.API.Controllers
 
         /// <summary>
         /// Crea una nueva persona (médico o paciente) - COMANDO CQRS
+        /// ⚠️ REQUIERE AUTENTICACIÓN - Solo usuarios autenticados pueden crear personas
         /// </summary>
         [HttpPost]
         [Route("")]
+        // ← ESTE ENDPOINT AHORA REQUIERE TOKEN (sin [AllowAnonymous])
         public async Task<IHttpActionResult> Crear([FromBody] CrearPersonaCommand command)
         {
             try
@@ -127,7 +135,7 @@ namespace Personas.API.Controllers
             }
             catch (ArgumentException argEx)
             {
-                return BadRequest($"Error de validación: {argEx.Message}");
+                return BadRequest(string.Format("Error de validación: {0}", argEx.Message));
             }
             catch (Exception ex)
             {
@@ -140,6 +148,7 @@ namespace Personas.API.Controllers
 
         /// <summary>
         /// Actualiza una persona existente - COMANDO CQRS
+        /// ✅ Requiere autenticación
         /// </summary>
         [HttpPut]
         [Route("{id:int}")]
@@ -166,6 +175,7 @@ namespace Personas.API.Controllers
 
         /// <summary>
         /// Elimina una persona - COMANDO CQRS
+        /// ✅ Requiere autenticación
         /// </summary>
         [HttpDelete]
         [Route("{id:int}")]
@@ -186,6 +196,7 @@ namespace Personas.API.Controllers
 
         /// <summary>
         /// Valida si un médico existe y está activo
+        /// ✅ Requiere autenticación
         /// </summary>
         [HttpGet]
         [Route("medicos/{id:int}/validar")]
@@ -216,6 +227,7 @@ namespace Personas.API.Controllers
 
         /// <summary>
         /// Valida si un paciente existe y está activo
+        /// ✅ Requiere autenticación
         /// </summary>
         [HttpGet]
         [Route("pacientes/{id:int}/validar")]

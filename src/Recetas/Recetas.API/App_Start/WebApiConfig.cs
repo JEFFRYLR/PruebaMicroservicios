@@ -9,7 +9,8 @@ namespace Recetas.API
     {
         public static void Register(HttpConfiguration config)
         {
-            // Configuración y servicios de Web API
+            // Habilitar CORS
+            config.EnableCors();
 
             // Rutas de Web API
             config.MapHttpAttributeRoutes();
@@ -19,6 +20,15 @@ namespace Recetas.API
                 routeTemplate: "api/{controller}/{id}",
                 defaults: new { id = RouteParameter.Optional }
             );
+
+            // Configurar JSON como formato predeterminado
+            var jsonFormatter = config.Formatters.JsonFormatter;
+            jsonFormatter.SerializerSettings.ReferenceLoopHandling = 
+                Newtonsoft.Json.ReferenceLoopHandling.Ignore;
+            jsonFormatter.SerializerSettings.PreserveReferencesHandling = 
+                Newtonsoft.Json.PreserveReferencesHandling.None;
+
+            config.Formatters.Remove(config.Formatters.XmlFormatter);
         }
     }
 }

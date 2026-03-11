@@ -1,8 +1,7 @@
-using Recetas.API.App_Start;
 using Recetas.Infrastructure.Messaging;
 using System;
 using System.Diagnostics;
-using System.Web.Http;
+using System.Web;
 using System.Web.Mvc;
 using System.Web.Optimization;
 using System.Web.Routing;
@@ -24,12 +23,10 @@ namespace Recetas.API
                 AreaRegistration.RegisterAllAreas();
                 Debug.WriteLine("[RECETAS.API] Areas registradas");
 
-                GlobalConfiguration.Configure(WebApiConfig.Register);
-                Debug.WriteLine("[RECETAS.API] WebApiConfig registrado");
-
-                // Registrar la inyección de dependencias para MediatR
-                DependencyConfig.Register(GlobalConfiguration.Configuration);
-                Debug.WriteLine("[RECETAS.API] DependencyConfig registrado");
+                // NOTA: La configuración de Web API y DependencyConfig 
+                // ahora se maneja en Startup.cs (OWIN)
+                // GlobalConfiguration.Configure(WebApiConfig.Register);
+                // DependencyConfig.Register(GlobalConfiguration.Configuration);
 
                 FilterConfig.RegisterGlobalFilters(GlobalFilters.Filters);
                 Debug.WriteLine("[RECETAS.API] Filtros registrados");
@@ -50,11 +47,11 @@ namespace Recetas.API
                 catch (Exception rabbitEx)
                 {
                     Debug.WriteLine("[RECETAS.API ERROR] No se pudo iniciar RabbitMQ Consumer:");
-                    Debug.WriteLine($"  Mensaje: {rabbitEx.Message}");
-                    Debug.WriteLine($"  StackTrace: {rabbitEx.StackTrace}");
+                    Debug.WriteLine(string.Format("  Mensaje: {0}", rabbitEx.Message));
+                    Debug.WriteLine(string.Format("  StackTrace: {0}", rabbitEx.StackTrace));
                     
                     // NO LANZAR EXCEPCIÓN - Permitir que la API inicie sin RabbitMQ
-                    Console.WriteLine($"⚠️ API iniciará sin RabbitMQ Consumer: {rabbitEx.Message}");
+                    Console.WriteLine(string.Format("⚠️ API iniciará sin RabbitMQ Consumer: {0}", rabbitEx.Message));
                 }
 
                 Debug.WriteLine("========================================");
@@ -65,14 +62,14 @@ namespace Recetas.API
             {
                 Debug.WriteLine("========================================");
                 Debug.WriteLine("[ERROR CRÍTICO RECETAS.API] Error al iniciar:");
-                Debug.WriteLine($"  Mensaje: {ex.Message}");
-                Debug.WriteLine($"  Tipo: {ex.GetType().FullName}");
-                Debug.WriteLine($"  StackTrace: {ex.StackTrace}");
+                Debug.WriteLine(string.Format("  Mensaje: {0}", ex.Message));
+                Debug.WriteLine(string.Format("  Tipo: {0}", ex.GetType().FullName));
+                Debug.WriteLine(string.Format("  StackTrace: {0}", ex.StackTrace));
                 
                 if (ex.InnerException != null)
                 {
-                    Debug.WriteLine($"  InnerException: {ex.InnerException.Message}");
-                    Debug.WriteLine($"  InnerException StackTrace: {ex.InnerException.StackTrace}");
+                    Debug.WriteLine(string.Format("  InnerException: {0}", ex.InnerException.Message));
+                    Debug.WriteLine(string.Format("  InnerException StackTrace: {0}", ex.InnerException.StackTrace));
                 }
                 Debug.WriteLine("========================================");
                 
@@ -82,40 +79,20 @@ namespace Recetas.API
 
         private void IniciarRabbitMQConsumer()
         {
+            Debug.WriteLine("[INICIO] Intentando iniciar RabbitMQ Consumer...");
+
             try
             {
-                Debug.WriteLine("[INICIO] Intentando iniciar RabbitMQ Consumer...");
-                
-                // ✅ Crear consumer sin dependencias de repositorio
-                // El consumer creará su propio scope de BD por cada mensaje
-                _rabbitMQConsumer = new RabbitMQConsumer(
-                    hostName: "168.231.74.78", 
-                    userName: "admin", 
-                    password: "admin123"
-                );
-
+                _rabbitMQConsumer = new RabbitMQConsumer();
                 Debug.WriteLine("[PASO 1] RabbitMQConsumer instanciado correctamente");
-                
-                _rabbitMQConsumer.IniciarEscucha();
 
+                _rabbitMQConsumer.IniciarEscucha();
                 Debug.WriteLine("[PASO 2] Consumer iniciado y escuchando mensajes");
-                Console.WriteLine("✅ RabbitMQ Consumer iniciado correctamente");
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[ERROR COMPLETO] No se pudo iniciar RabbitMQ Consumer");
-                Debug.WriteLine($"Mensaje: {ex.Message}");
-                Debug.WriteLine($"Tipo: {ex.GetType().FullName}");
-                Debug.WriteLine($"StackTrace: {ex.StackTrace}");
-                
-                if (ex.InnerException != null)
-                {
-                    Debug.WriteLine($"InnerException: {ex.InnerException.Message}");
-                    Debug.WriteLine($"InnerException StackTrace: {ex.InnerException.StackTrace}");
-                }
-                
-                Console.WriteLine($"⚠️ No se pudo iniciar RabbitMQ Consumer: {ex.Message}");
-                // No lanzar excepción para que la API inicie igual
+                Debug.WriteLine(string.Format("[ERROR RABBITMQ] Error al iniciar consumer: {0}", ex.Message));
+                throw;
             }
         }
 
@@ -123,13 +100,18 @@ namespace Recetas.API
         {
             try
             {
-                Debug.WriteLine("[SHUTDOWN] Liberando recursos de RabbitMQ Consumer...");
-                _rabbitMQConsumer?.Dispose();
-                Debug.WriteLine("[SHUTDOWN] RabbitMQ Consumer liberado correctamente");
+                Debug.WriteLine("[RECETAS.API] Cerrando aplicación...");
+                
+                if (_rabbitMQConsumer != null)
+                {
+                    Debug.WriteLine("[RECETAS.API] Deteniendo RabbitMQ Consumer...");
+                    _rabbitMQConsumer.Dispose();
+                    Debug.WriteLine("[RECETAS.API] RabbitMQ Consumer detenido");
+                }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[ERROR SHUTDOWN] Error al liberar RabbitMQ Consumer: {ex.Message}");
+                Debug.WriteLine(string.Format("[ERROR] Error al cerrar aplicación: {0}", ex.Message));
             }
         }
     }

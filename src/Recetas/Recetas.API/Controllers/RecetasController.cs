@@ -11,6 +11,7 @@ namespace Recetas.API.Controllers
     /// <summary>
     /// API Controller para Recetas Médicas usando CQRS + MediatR
     /// </summary>
+    [Authorize]  // Protege todo el controlador
     [RoutePrefix("api/recetas")]
     public class RecetasController : ApiController
     {
@@ -26,6 +27,7 @@ namespace Recetas.API.Controllers
         /// </summary>
         [HttpGet]
         [Route("")]
+        [AllowAnonymous]  // Permitir acceso público
         public IHttpActionResult Get()
         {
             return Ok(new
