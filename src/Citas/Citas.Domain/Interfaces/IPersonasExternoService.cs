@@ -29,5 +29,11 @@ namespace Citas.Domain.Interfaces
         /// <param name="personaId">ID de la persona</param>
         /// <returns>DTO con datos de la persona o null si no existe</returns>
         Task<PersonaExternaDto> ObtenerPersonaPorIdAsync(int personaId);
+
+        /// <summary>
+        /// Configura el token de autorización para las peticiones
+        /// </summary>
+        /// <param name="token">Token de autorización</param>
+        void SetAuthorizationToken(string token);
     }
 }

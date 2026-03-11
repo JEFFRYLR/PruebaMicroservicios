@@ -17,6 +17,7 @@ namespace Personas.Infrastructure.Persistence
         }
 
         public DbSet<Persona> Personas { get; set; }
+        public DbSet<Usuario> Usuarios { get; set; }
 
         protected override void OnModelCreating(DbModelBuilder modelBuilder)
         {
@@ -44,6 +45,38 @@ namespace Personas.Infrastructure.Persistence
             modelBuilder.Entity<Persona>()
                 .Property(p => p.TipoPersona)
                 .IsRequired();
+
+            // Configuración de la entidad Usuario
+            modelBuilder.Entity<Usuario>()
+                .ToTable("Usuarios")
+                .HasKey(u => u.Id);
+
+            modelBuilder.Entity<Usuario>()
+                .Property(u => u.NombreUsuario)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            modelBuilder.Entity<Usuario>()
+                .HasIndex(u => u.NombreUsuario)
+                .IsUnique();
+
+            modelBuilder.Entity<Usuario>()
+                .Property(u => u.PasswordHash)
+                .IsRequired()
+                .HasMaxLength(500);
+
+            modelBuilder.Entity<Usuario>()
+                .Property(u => u.Activo)
+                .IsRequired();
+
+            modelBuilder.Entity<Usuario>()
+                .Property(u => u.FechaCreacion)
+                .IsRequired();
+
+            modelBuilder.Entity<Usuario>()
+                .HasRequired(u => u.Persona)
+                .WithMany()
+                .HasForeignKey(u => u.PersonaId);
 
             base.OnModelCreating(modelBuilder);
         }

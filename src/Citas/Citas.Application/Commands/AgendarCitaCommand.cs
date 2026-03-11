@@ -8,10 +8,13 @@ namespace Citas.Application.Commands
     /// </summary>
     public class AgendarCitaCommand : IRequest<int>
     {
-        public DateTime FechaCita { get; set; }
-        public string Lugar { get; set; }
         public int MedicoId { get; set; }
         public int PacienteId { get; set; }
-        public string Motivo { get; set; }
+        public DateTime FechaCita { get; set; }
+        public string Lugar { get; set; }
+        public string Motivo { get; set; }  
+
+        // Para propagación de token JWT
+        public string BearerToken { get; set; }
     }
 }

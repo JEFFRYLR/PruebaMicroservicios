@@ -42,9 +42,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Entities\Persona.cs" />
+    <Compile Include="Entities\Usuario.cs" />
     <Compile Include="Enums\TipoDocuemento.cs" />
     <Compile Include="Enums\TipoPersona.cs" />
     <Compile Include="Interfaces\IPersonaRepository.cs" />
+    <Compile Include="Interfaces\UsuarioRepository.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ValueObjects\Documento.cs" />
   </ItemGroup>

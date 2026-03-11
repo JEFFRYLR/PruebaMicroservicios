@@ -28,33 +28,40 @@ namespace Citas.Application.CommandHandlers
 
         public async Task<int> Handle(AgendarCitaCommand request, CancellationToken cancellationToken)
         {
-            //  VALIDACIÓN 1: Verificar que el médico exista
-            Debug.WriteLine($"Validando médico con ID: {request.MedicoId}");
+            // NUEVO: Configurar token JWT antes de hacer llamadas al servicio externo
+            if (!string.IsNullOrEmpty(request.BearerToken))
+            {
+                _personasService.SetAuthorizationToken(request.BearerToken);
+                Debug.WriteLine("Token JWT configurado en PersonasExternoService");
+            }
+
+            // VALIDACIÓN 1: Verificar que el médico exista
+            Debug.WriteLine(string.Format("Validando médico con ID: {0}", request.MedicoId));
             
             bool medicoExiste = await _personasService.ExisteMedicoAsync(request.MedicoId);
             
             if (!medicoExiste)
             {
                 throw new InvalidOperationException(
-                    $"No se puede agendar la cita. El médico con ID {request.MedicoId} no existe o no está activo en el sistema.");
+                    string.Format("No se puede agendar la cita. El médico con ID {0} no existe o no está activo en el sistema.", request.MedicoId));
             }
 
-            Debug.WriteLine($" Médico {request.MedicoId} validado correctamente");
+            Debug.WriteLine(string.Format(" Médico {0} validado correctamente", request.MedicoId));
 
-            //  VALIDACIÓN 2: Verificar que el paciente exista
-            Debug.WriteLine($"Validando paciente con ID: {request.PacienteId}");
+            // VALIDACIÓN 2: Verificar que el paciente exista
+            Debug.WriteLine(string.Format("Validando paciente con ID: {0}", request.PacienteId));
             
             bool pacienteExiste = await _personasService.ExistePacienteAsync(request.PacienteId);
             
             if (!pacienteExiste)
             {
                 throw new InvalidOperationException(
-                    $"No se puede agendar la cita. El paciente con ID {request.PacienteId} no existe o no está activo en el sistema.");
+                    string.Format("No se puede agendar la cita. El paciente con ID {0} no existe o no está activo en el sistema.", request.PacienteId));
             }
 
-            Debug.WriteLine($" Paciente {request.PacienteId} validado correctamente");
+            Debug.WriteLine(string.Format(" Paciente {0} validado correctamente", request.PacienteId));
 
-            //  Si ambas validaciones pasaron, crear la cita
+            // Si ambas validaciones pasaron, crear la cita
             var cita = new Cita(
                 request.FechaCita,
                 request.Lugar,
@@ -66,7 +73,7 @@ namespace Citas.Application.CommandHandlers
             _repository.Crear(cita);
             _repository.GuardarCambios();
 
-            Debug.WriteLine($" Cita {cita.Id} creada exitosamente");
+            Debug.WriteLine(string.Format(" Cita {0} creada exitosamente", cita.Id));
 
             return await Task.FromResult(cita.Id);
         }

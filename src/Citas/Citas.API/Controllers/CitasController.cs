@@ -7,9 +7,7 @@ using System.Web.Http;
 
 namespace Citas.API.Controllers
 {
-    /// <summary>
-    /// Controlador API de Citas Médicas - Patrón CQRS con MediatR
-    /// </summary>
+    [Authorize]  // ← AGREGAR AQUÍ: Protege todo el controlador
     [RoutePrefix("api/citas")]
     public class CitasController : ApiController
     {
@@ -26,12 +24,13 @@ namespace Citas.API.Controllers
         /// </summary>
         [HttpGet]
         [Route("")]
+        [AllowAnonymous]  // ← AGREGAR: Permitir acceso público a este endpoint
         public IHttpActionResult Get()
         {
             return Ok(new
             {
-                mensaje = "API de Citas funcionando con CQRS + MediatR + Validación de Personas",
-                version = "2.0",
+                mensaje = "API de Citas con JWT Authentication",
+                version = "3.0",
                 patron = "CQRS (Command Query Responsibility Segregation)",
                 integracion = "HTTP Sincrónico con Microservicio de Personas",
                 endpoints = new[]
@@ -54,6 +53,7 @@ namespace Citas.API.Controllers
         /// </summary>
         [HttpPost]
         [Route("")]
+        // ← Este endpoint ahora requiere autenticación
         public async Task<IHttpActionResult> AgendarCita([FromBody] AgendarCitaCommand command)
         {
             if (command == null)
@@ -64,11 +64,14 @@ namespace Citas.API.Controllers
 
             try
             {
-                System.Diagnostics.Debug.WriteLine($"[API] Iniciando agendamiento de cita - Médico: {command.MedicoId}, Paciente: {command.PacienteId}");
-                
+                // NUEVO: Extraer token del header para propagación
+                var authHeader = Request.Headers.Authorization;
+                if (authHeader != null && authHeader.Scheme == "Bearer")
+                {
+                    command.BearerToken = authHeader.Parameter;
+                }
+
                 var citaId = await _mediator.Send(command);
-                
-                System.Diagnostics.Debug.WriteLine($"[API] Cita agendada exitosamente con ID: {citaId}");
                 
                 return Ok(new 
                 { 
@@ -80,32 +83,10 @@ namespace Citas.API.Controllers
             }
             catch (InvalidOperationException invalidEx)
             {
-                // ✅ Errores de validación de negocio (médico/paciente no existe)
-                System.Diagnostics.Debug.WriteLine($"[API] Error de validación: {invalidEx.Message}");
                 return BadRequest(invalidEx.Message);
-            }
-            catch (ArgumentException argEx)
-            {
-                // ✅ Errores de validación de argumentos
-                System.Diagnostics.Debug.WriteLine($"[API] Error de argumentos: {argEx.Message}");
-                return BadRequest(argEx.Message);
-            }
-            catch (System.Net.Http.HttpRequestException httpEx)
-            {
-                // ✅ Error de comunicación con el servicio de Personas
-                System.Diagnostics.Debug.WriteLine($"[API] Error de comunicación: {httpEx.Message}");
-                return Content(System.Net.HttpStatusCode.ServiceUnavailable, new
-                {
-                    mensaje = "No se pudo validar los datos de la cita. El servicio de Personas no está disponible.",
-                    detalle = httpEx.Message,
-                    tipo = "ServiceUnavailable"
-                });
             }
             catch (Exception ex)
             {
-                // ✅ Otros errores inesperados
-                System.Diagnostics.Debug.WriteLine($"[API] Error inesperado: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"[API] StackTrace: {ex.StackTrace}");
                 return InternalServerError(ex);
             }
         }
