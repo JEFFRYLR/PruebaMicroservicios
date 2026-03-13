@@ -10,11 +10,13 @@ namespace Personas.Application.CommandHandlers
 {
     /// <summary>
     /// Handler para crear una nueva persona
+    ///  Implementa IRequestHandler<CrearPersonaCommand, int>
     /// </summary>
     public class CrearPersonaCommandHandler : IRequestHandler<CrearPersonaCommand, int>
     {
         private readonly IPersonaRepository _personaRepository;
 
+        //  Unity inyecta IPersonaRepository automáticamente
         public CrearPersonaCommandHandler(IPersonaRepository personaRepository)
         {
             _personaRepository = personaRepository;
@@ -22,11 +24,21 @@ namespace Personas.Application.CommandHandlers
 
         public Task<int> Handle(CrearPersonaCommand request, CancellationToken cancellationToken)
         {
+            // Crear Value Object
             var documento = new Documento(request.TipoDocumento, request.NumeroDocumento);
-            var persona = new Persona(request.Nombre, request.Apellido, documento, request.TipoPersona);
 
+            // Crear Entidad de Dominio (con validaciones)
+            var persona = new Persona(
+                request.Nombre,
+                request.Apellido,
+                documento,
+                request.TipoPersona
+            );
+
+            // Persistir en BD
             _personaRepository.Crear(persona);
 
+            // Retornar ID generado
             return Task.FromResult(persona.Id);
         }
     }
